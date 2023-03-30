@@ -10,7 +10,6 @@ from Evaluation.evaluation import *
 ########################################################################################################################
 # COMMENTS
 ########################################################################################################################
-
 class SaveDataset(MetaParameters):
     
     def __init__(self, files, pickle_name): 
@@ -233,26 +232,27 @@ train_list = [
     'Sub55.nii', 'Sub59.nii', 'Sub52.nii', 'Sub31.nii', 'Sub97.nii', 'Sub73.nii', 'Sub11.nii', 'Sub94.nii', 'Sub33.nii']
 
 
-########################################################################################################################
-## Create datasets and save it into pickle files
-########################################################################################################################
-SaveDataset(train_list_01, 'train_01').save_to_pickle()
-SaveDataset(valid_list_01, 'valid_01').save_to_pickle()
+if __name__ == "__main__":
+    ########################################################################################################################
+    ## Create datasets and save it into pickle files
+    ########################################################################################################################
+    # SaveDataset(train_list_01, 'train_01').save_to_pickle()
+    # SaveDataset(valid_list_01, 'valid_01').save_to_pickle()
 
-# SaveDataset(train_list_02, 'train_02').save_to_pickle()
-# SaveDataset(valid_list_02, 'valid_02').save_to_pickle()
+    SaveDataset(train_list_02, 'train_02').save_to_pickle()
+    SaveDataset(valid_list_02, 'valid_02').save_to_pickle()
 
-# SaveDataset(train_list_03, 'train_03').save_to_pickle()
-# SaveDataset(valid_list_03, 'valid_03').save_to_pickle()
+    SaveDataset(train_list_03, 'train_03').save_to_pickle()
+    SaveDataset(valid_list_03, 'valid_03').save_to_pickle()
 
-# SaveDataset(train_list_04, 'train_04').save_to_pickle()
-# SaveDataset(valid_list_04, 'valid_04').save_to_pickle()
+    SaveDataset(train_list_04, 'train_04').save_to_pickle()
+    SaveDataset(valid_list_04, 'valid_04').save_to_pickle()
 
-# SaveDataset(train_list_05, 'train_05').save_to_pickle()
-# SaveDataset(valid_list_05, 'valid_05').save_to_pickle()
+    SaveDataset(train_list_05, 'train_05').save_to_pickle()
+    SaveDataset(valid_list_05, 'valid_05').save_to_pickle()
 
-# # SaveDataset(train_list_full, 'train_full').save_to_pickle()
+    # # SaveDataset(train_list_full, 'train_full').save_to_pickle()
 
-SaveDataset(test_list, 'test').save_to_pickle()
+    SaveDataset(test_list, 'test').save_to_pickle()
 
 

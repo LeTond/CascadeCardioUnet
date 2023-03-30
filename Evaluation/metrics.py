@@ -1,4 +1,4 @@
-from Preprocessing.preprocessing import view_matrix, read_nii, crop_center
+from Preprocessing.preprocessing import view_matrix, read_nii
 from parameters import meta 
 from Preprocessing.dirs_logs import *
 
@@ -40,6 +40,18 @@ class FocalLoss(nn.modules.loss._WeightedLoss):
         pt = torch.exp(-ce_loss)
         focal_loss = ((1 - pt) ** self.gamma * ce_loss).mean()
         return focal_loss
+
+
+
+class Prediction():
+    ...
+
+
+class Validation():
+    ...
+
+
+
 
 
 def dice(test=None, reference=None, confusion_matrix=None, nan_for_nonexisting=True, **kwargs):

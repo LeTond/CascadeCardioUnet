@@ -29,8 +29,12 @@ class Evaluation(MetaParameters):
         
         neural_model = torch.load(f'{self.PROJECT_NAME}/{self.MODEL_NAME}.pth').to(device=self.device)
         images, image_shp, fov_size, def_cord = GetListImages(file_name, dataset_dir, dataset_path).array_list()
-        pdf_prediction = pdf_predictions(neural_model, file_name, self.KERNEL_SZ, images, image_shp, fov_size, evaluate_directory)
-        save_predictions(neural_model, file_name, self.KERNEL_SZ, images, image_shp, fov_size, def_cord, evaluate_directory)
+        
+
+        pdf_predictions(neural_model, file_name, self.KERNEL_SZ, images, image_shp, fov_size, evaluate_directory)
+
+        NiftiSaver().save_predictions(neural_model, file_name, self.KERNEL_SZ, images, image_shp, fov_size, def_cord, evaluate_directory)
+
 
     def presegmentation(self, file_name): 
         ####################################################################################
@@ -51,8 +55,12 @@ class Evaluation(MetaParameters):
         
         neural_model = torch.load(f'{self.PROJECT_NAME}/{self.MODEL_NAME}.pth').to(device=self.device)        
         images, image_shp, fov_size, def_cord = GetListImages(file_name, dataset_dir, dataset_path).array_list()
-        pdf_prediction = pdf_predictions(neural_model, file_name, self.PRESEG_KERNEL, images, image_shp, fov_size, evaluate_directory)
-        save_predictions(neural_model, file_name, self.PRESEG_KERNEL, images, image_shp, fov_size, def_cord, evaluate_directory)
+
+
+        pdf_predictions(neural_model, file_name, self.PRESEG_KERNEL, images, image_shp, fov_size, evaluate_directory)
+
+        NiftiSaver().save_predictions(neural_model, file_name, self.PRESEG_KERNEL, images, image_shp, fov_size, def_cord, evaluate_directory)
+
 
     def run_process(self):
         dataset_dir = f'{self.DATASET_DIR}{self.DATASET_NAME}_'

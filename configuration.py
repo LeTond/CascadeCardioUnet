@@ -109,7 +109,7 @@ target_transform = transforms.Compose([
 transform = transforms.Compose([
     transforms.ToPILImage(),
     # transforms.Resize((meta.KERNEL_SZ, meta.KERNEL_SZ)),
-    transforms.RandomRotation((-45, 45)),
+    transforms.RandomRotation((-15, 15)),
     transforms.RandomHorizontalFlip(0.5),
     transforms.RandomVerticalFlip(0.5),
     transforms.ToTensor(),
@@ -167,7 +167,7 @@ test_ds_names = pd.read_pickle(
 ########################################################################################################################
 train_set = MyDataset(meta.NUM_LAYERS, train_ds_origin, train_ds_mask, train_ds_names, meta.KERNEL_SZ, target_transform,
                       target_transform)
-for i in range(7):
+for i in range(9):
     train_set += MyDataset(meta.NUM_LAYERS, train_ds_origin, train_ds_mask, train_ds_names, meta.KERNEL_SZ, transform, target_transform)
 train_loader = DataLoader(train_set, meta.BT_SZ, drop_last=True, shuffle=True, pin_memory=True)
 
@@ -178,4 +178,4 @@ valid_loader = DataLoader(valid_set, valid_batch_size, drop_last=True, shuffle=T
 
 test_set = MyDataset(meta.NUM_LAYERS, test_ds_origin, test_ds_mask, test_ds_names, meta.KERNEL_SZ, target_transform, target_transform)
 test_batch_size = len(test_set)
-test_loader = DataLoader(test_set, test_batch_size//8, drop_last=True, shuffle=False, pin_memory=True)
+test_loader = DataLoader(test_set, test_batch_size, drop_last=True, shuffle=False, pin_memory=True)

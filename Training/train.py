@@ -41,6 +41,8 @@ class TrainNetwork(MetaParameters):
                 predict = torch.softmax(predict, dim=1)
                 predict = torch.argmax(predict, dim=1)
                 labels = torch.argmax(labels, dim=1)
+                
+                ##TODO: should delete all 1,2,3... and replace it by DICT_LAYERS[0] ....
                 pred_lv = (predict == 1)
                 labe_lv = (labels == 1)
                 pred_myo = (predict == 2)

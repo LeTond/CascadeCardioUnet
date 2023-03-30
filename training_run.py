@@ -1,3 +1,12 @@
+ # -*- coding: utf-8 -*-
+"""
+Name: Anatoliy Levchuk
+Version: 1
+Date: 29-03-2023
+Email: feuerlag999@yandex.ru
+GitHub: https://github.com/LeTond
+"""
+
 from Training.train import *
 from parameters import *
 from configuration import *

@@ -291,35 +291,38 @@ class EvalPreprocessData(MetaParameters):
 
         new_size = max((mean_bot - mean_top), (mean_right - mean_left))
 
-        gap = new_size // 2 + round(0.05 * base_kernel)
-        # gap = 32
+        # gap = new_size // 2 + round(0.05 * base_kernel)
+        gap = 32
 
         new_images = self.images[center_row - gap: center_row + gap, center_column - gap: center_column + gap, :]
         new_masks = self.masks[center_row - gap: center_row + gap, center_column - gap: center_column + gap, :]
 
         ## Variant 1 ##
         ####### Меняем разрешение на назрешением матрицы из метадата
-        # scale =  self.KERNEL_SZ / new_size
-        # new_images = rescale(new_images, (scale, scale, 1), anti_aliasing = False)
-        # new_masks = rescale(new_masks, (scale, scale, 1), anti_aliasing = False, order=0)
+        scale =  self.KERNEL_SZ / new_size
+        new_images = rescale(new_images, (scale, scale, 1), anti_aliasing = False)
+        new_masks = rescale(new_masks, (scale, scale, 1), anti_aliasing = False, order=0)
         ###########################################################################################
 
-        ## Variant 2 ##
-        # Достройка матрицы до квадрата ядра
-        if new_size < self.KERNEL_SZ:
-            print(f"Start expanding matrix from {new_images.shape} to {self.KERNEL_SZ, self.KERNEL_SZ, shp[2]}")
-            zero_matrix_1 = np.zeros((self.KERNEL_SZ, self.KERNEL_SZ, shp[2]))
-            zero_matrix_2 = np.zeros((self.KERNEL_SZ, self.KERNEL_SZ, shp[2]))
+        # ## Variant 2 ##
+        # # Достройка матрицы до квадрата ядра
+        # if new_size < self.KERNEL_SZ:
+        #     print(f"Start expanding matrix from {new_images.shape} to {self.KERNEL_SZ, self.KERNEL_SZ, shp[2]}")
+        #     zero_matrix_1 = np.zeros((self.KERNEL_SZ, self.KERNEL_SZ, shp[2]))
+        #     zero_matrix_2 = np.zeros((self.KERNEL_SZ, self.KERNEL_SZ, shp[2]))
 
-            zero_matrix_1[: (2 * gap), : (2 * gap), :] = new_images
-            zero_matrix_2[: (2 * gap), : (2 * gap), :] = new_masks
+        #     zero_matrix_1[: (2 * gap), : (2 * gap), :] = new_images
+        #     zero_matrix_2[: (2 * gap), : (2 * gap), :] = new_masks
 
-        else:
-            print(f"Start rescaling from {new_images.shape} to {self.KERNEL_SZ, self.KERNEL_SZ, shp[2]}")
-            scale =  self.KERNEL_SZ / new_size
-            new_images = rescale(new_images, (scale, scale, 1), anti_aliasing = False)
-            new_masks = rescale(new_masks, (scale, scale, 1), anti_aliasing = False, order=0)
-        ###########################################################################################
+        #     new_images = zero_matrix_1
+        #     new_masks = zero_matrix_2
+
+        # else:
+        #     print(f"Start rescaling from {new_images.shape} to {self.KERNEL_SZ, self.KERNEL_SZ, shp[2]}")
+        #     scale =  self.KERNEL_SZ / new_size
+        #     new_images = rescale(new_images, (scale, scale, 1), anti_aliasing = False)
+        #     new_masks = rescale(new_masks, (scale, scale, 1), anti_aliasing = False, order=0)
+        # ###########################################################################################
 
 
         return new_images, new_masks, [center_row, center_column]

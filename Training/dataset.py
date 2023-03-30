@@ -14,6 +14,7 @@ from torch.utils.data import Dataset
 ##TODO: COMMENTS
 ########################################################################################################################
 
+##TODO: Delete pickle part and realize all preprocessing and augmentation right into the MyDataset class
 class MyDataset(Dataset):
 
     def __init__(self, num_layers, ds_origin, ds_mask, ds_names, kernel_sz, transform = None, target_transform = None, images_and_labels = []):
@@ -31,7 +32,7 @@ class MyDataset(Dataset):
 
     def preprocessing(self, image, label):
 
-        label = label / 3
+        label = label / (self.num_layers - 1)
         image = TF.to_pil_image(image)
         label = TF.to_pil_image(label)
         image = TF.pil_to_tensor(image)
@@ -40,13 +41,13 @@ class MyDataset(Dataset):
         tcat = torch.cat((image, label), 0)
         image, label = self.transform(tcat)
 
-        Normalize_tr = transforms.Compose([transforms.ToPILImage(),transforms.ToTensor(), transforms.Normalize(0.5,0.5)])
-        image = Normalize_tr(image)
+        # Normalize_tr = transforms.Compose([transforms.ToPILImage(),transforms.ToTensor(), transforms.Normalize(0.5,0.5)])
+        # image = Normalize_tr(image)
 
         image = np.array(image.reshape(self.kernel_sz, self.kernel_sz, 1), dtype=np.float32)
         label = np.array(label.reshape(self.kernel_sz, self.kernel_sz, 1), dtype=np.float32)
 
-        label = label * 3
+        label = label * (self.num_layers - 1)
 
         return image, label
 
