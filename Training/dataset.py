@@ -41,15 +41,18 @@ class MyDataset(Dataset):
         tcat = torch.cat((image, label), 0)
         image, label = self.transform(tcat)
 
-        # Normalize_tr = transforms.Compose([transforms.ToPILImage(),transforms.ToTensor(), transforms.Normalize(0.5,0.5)])
-        # image = Normalize_tr(image)
-
+        image = self.normalization(image)
         image = np.array(image.reshape(self.kernel_sz, self.kernel_sz, 1), dtype=np.float32)
         label = np.array(label.reshape(self.kernel_sz, self.kernel_sz, 1), dtype=np.float32)
 
         label = label * (self.num_layers - 1)
 
         return image, label
+
+    @staticmethod
+    def normalization(image):
+        normalize = transforms.Compose([transforms.ToPILImage(),transforms.ToTensor(), transforms.Normalize(0.5,0.5)])
+        return normalize(image)
 
     def __getitem__(self, item):
         imgs, labs, sub_nms = self.images_and_labels[item]

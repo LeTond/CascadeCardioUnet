@@ -1,4 +1,4 @@
-from Preprocessing.preprocessing import view_matrix, read_nii, crop_center
+from Preprocessing.preprocessing import view_matrix, read_nii
 from parameters import meta 
 from Preprocessing.dirs_logs import *
 

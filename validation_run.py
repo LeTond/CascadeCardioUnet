@@ -1,11 +1,5 @@
-
-
-
 from configuration import *
-from Evaluation.metrics import *
-
-kernel_sz = meta.KERNEL_SZ
-
+from Validation.metrics import *
 
 #########################################################################################################################
 ##TODO: COMMENTS
@@ -17,22 +11,22 @@ class Validation(MetaParameters):
         self.device = device
 
 
-class PlotResults():
+class PlotResults(MetaParameters):
 
     def __init__(self):         
         super(MetaParameters, self).__init__()
 
-    def pdf_plot(sub_names, origImage, origMask, predMask):
+    def save_plot(self, sub_names, origImage, origMask, predMask):
         pp = PdfPages('results.pdf')
         num = len(sub_names)
         figure, ax = plt.subplots(nrows = 1, ncols = 3, figsize = (8, 8))
         for i in range(num):
 
-            ax[0].imshow(np.resize(origImage[i].cpu(), (kernel_sz, kernel_sz)), plt.get_cmap('gray'))
-            ax[1].imshow(np.resize(origImage[i].cpu(), (kernel_sz, kernel_sz)), plt.get_cmap('gray'))
-            ax[1].imshow(np.resize(predMask[i].cpu(), (kernel_sz, kernel_sz)), alpha = 0.5)
-            ax[2].imshow(np.resize(origImage[i].cpu(), (kernel_sz, kernel_sz)), plt.get_cmap('gray'))
-            ax[2].imshow(np.resize(origMask[i].cpu(), (kernel_sz, kernel_sz)), alpha = 0.5)
+            ax[0].imshow(np.resize(origImage[i].cpu(), (self.KERNEL_SZ, self.KERNEL_SZ)), plt.get_cmap('gray'))
+            ax[1].imshow(np.resize(origImage[i].cpu(), (self.KERNEL_SZ, self.KERNEL_SZ)), plt.get_cmap('gray'))
+            ax[1].imshow(np.resize(predMask[i].cpu(), (self.KERNEL_SZ, self.KERNEL_SZ)), alpha = 0.5)
+            ax[2].imshow(np.resize(origImage[i].cpu(), (self.KERNEL_SZ, self.KERNEL_SZ)), plt.get_cmap('gray'))
+            ax[2].imshow(np.resize(origMask[i].cpu(), (self.KERNEL_SZ, self.KERNEL_SZ)), alpha = 0.5)
             
             ax[0].set_title(f"{sub_names[i]}", fontsize = 8, fontweight = 'bold')
             ax[1].set_title("Predicted mask", fontsize = 8, fontweight='bold')
@@ -41,38 +35,23 @@ class PlotResults():
             pp.savefig(figure)
         pp.close()
 
-    def pdf_plot2(sub_names, origImage, origMask, predMask, dice_lv, dice_myo, dice_fib, precision, recall, accur):
-        figure, ax = plt.subplots(nrows = 1, ncols = 3, figsize = (8, 8))
-        ax[0].imshow(np.resize(origImage.cpu(), (kernel_sz, kernel_sz)), plt.get_cmap('gray'))
-        ax[1].imshow(np.resize(origImage.cpu(), (kernel_sz, kernel_sz)), plt.get_cmap('gray'))
-        ax[1].imshow(np.resize(predMask.cpu(), (kernel_sz, kernel_sz)), alpha = 0.5)
-        ax[2].imshow(np.resize(origImage.cpu(), (kernel_sz, kernel_sz)), plt.get_cmap('gray'))
-        ax[2].imshow(np.resize(origMask.cpu(), (kernel_sz, kernel_sz)), alpha = 0.5)
-        
-        ax[0].set_title(f"{sub_names}", fontsize = 8, fontweight = 'bold')
-        ax[1].set_title(f"DC_LV:{dice_lv}/DC_MYO:{dice_myo}/DC_FIB:{dice_fib}/Prec:{precision}/Recall:{recall}/Accur:{accur}", fontsize = 8, fontweight='bold')
-        ax[2].set_title("", fontsize = 8, fontweight ='bold')
-        figure.tight_layout()
-                
-        return figure
 
-
-    def prepare_plot(sub_names, origImage, origMask, predMask, dice_lv, dice_myo, dice_fib, precision, recall, accur):
+    def prepare_plot(self, sub_names, origImage, origMask, predMask):
         figure, ax = plt.subplots(nrows = 1, ncols = 3, figsize = (8, 8))
-        ax[0].imshow(np.resize(origImage.cpu(), (kernel_sz, kernel_sz)), plt.get_cmap('gray'))
-        ax[1].imshow(np.resize(origImage.cpu(), (kernel_sz, kernel_sz)), plt.get_cmap('gray'))
-        ax[1].imshow(np.resize(predMask.cpu(), (kernel_sz, kernel_sz)), alpha = 0.5)
-        ax[2].imshow(np.resize(origImage.cpu(), (kernel_sz, kernel_sz)), plt.get_cmap('gray'))
-        ax[2].imshow(np.resize(origMask.cpu(), (kernel_sz, kernel_sz)), alpha = 0.5)
+        ax[0].imshow(np.resize(origImage.cpu(), (self.KERNEL_SZ, self.KERNEL_SZ)), plt.get_cmap('gray'))
+        ax[1].imshow(np.resize(origImage.cpu(), (self.KERNEL_SZ, self.KERNEL_SZ)), plt.get_cmap('gray'))
+        ax[1].imshow(np.resize(predMask.cpu(), (self.KERNEL_SZ, self.KERNEL_SZ)), alpha = 0.5)
+        ax[2].imshow(np.resize(origImage.cpu(), (self.KERNEL_SZ, self.KERNEL_SZ)), plt.get_cmap('gray'))
+        ax[2].imshow(np.resize(origMask.cpu(), (self.KERNEL_SZ, self.KERNEL_SZ)), alpha = 0.5)
         
-        ax[0].set_title(f"{sub_names}", fontsize = 8, fontweight = 'bold')
-        ax[1].set_title(f"Dice: LV - {dice_lv} || MYO - {dice_myo} || FIB - {dice_fib} || Prec - {precision} || Rec - {recall}", fontsize = 8, fontweight='bold')
-        ax[2].set_title("", fontsize = 8, fontweight ='bold')
+        ax[0].set_title(f"{sub_names}", fontsize = 10, fontweight = 'bold')
+        ax[1].set_title(f"Dice: LV - {self.dice_lv} || MYO - {self.dice_myo} || FIB - {self.dice_fib} || Prec - {self.precision} || Rec - {self.recall}", fontsize = 10, fontweight='bold')
+        ax[2].set_title("", fontsize = 10, fontweight ='bold')
         figure.tight_layout()
         
         return figure
 
-    def make_predictions(predicted_masks):
+    def make_predictions(self, predicted_masks):
 
         ds = DiceLoss()
 
@@ -81,15 +60,36 @@ class PlotResults():
                 predicted_masks[10][i][predicted_masks[10][i] == 3]= 2
 
             fib_metrics = metrics(predicted_masks[7][i], predicted_masks[6][i], predicted_masks[5][i], 'FIB')
-            dice_lv = round((float(ds(predicted_masks[1][i], predicted_masks[2][i]))), 3)
-            dice_myo = round((float(ds(predicted_masks[3][i], predicted_masks[4][i]))), 3)
+            self.dice_lv = round((float(ds(predicted_masks[1][i], predicted_masks[2][i]))), 3)
+            self.dice_myo = round((float(ds(predicted_masks[3][i], predicted_masks[4][i]))), 3)
+            self.dice_fib = fib_metrics[3]
             # dice_fib = round((float(ds(predicted_masks[5][i], predicted_masks[6][i]))), 3)
-            dice_fib = fib_metrics[3]
-            dice = round((dice_lv + dice_myo + dice_fib) / 3, 3)
-            
-            precision, recall, accur = fib_metrics[0], fib_metrics[1], fib_metrics[2]
-            
-            # if dice_fib < 0.5:
-            prepare_plot(predicted_masks[7][i], predicted_masks[8][i], predicted_masks[9][i], predicted_masks[10][i], dice_lv, dice_myo, dice_fib, precision, recall, accur)
-                        # break
-                    # pdf_plot2(sub_names[i], inputs[i], labels[i], predict[i], dice_lv, dice_myo, dice_fib, precision, recall, accur)
+            # dice = round((self.dice_lv + self.dice_myo + self.dice_fib) / 3, 3)
+            self.precision, self.recall, self.accur = fib_metrics[0], fib_metrics[1], fib_metrics[2]
+            if self.dice_fib < 0.2:
+                self.prepare_plot(predicted_masks[7][i], predicted_masks[8][i], predicted_masks[9][i], predicted_masks[10][i])
+
+
+test_ds_origin = pd.read_pickle(
+    f'{meta.PREPROCESSED_DATASET}{meta.DATASET_NAME}_test_origin.pickle'
+)
+test_ds_mask = pd.read_pickle(
+    f'{meta.PREPROCESSED_DATASET}{meta.DATASET_NAME}_test_mask.pickle'
+)
+test_ds_names = pd.read_pickle(
+    f'{meta.PREPROCESSED_DATASET}{meta.DATASET_NAME}_test_sub_names.pickle'
+)
+
+test_set = MyDataset(meta.NUM_LAYERS, test_ds_origin, test_ds_mask, test_ds_names, meta.KERNEL_SZ, target_transform, target_transform)
+test_batch_size = len(test_set)
+test_loader = DataLoader(test_set, test_batch_size, drop_last=True, shuffle=False, pin_memory=True)
+
+unet = torch.load(f'{meta.PROJECT_NAME}/{meta.MODEL_NAME}.pth').to(device=device)
+predicted_masks = prediction_masks(unet, device, test_loader)
+
+
+
+
+
+
+

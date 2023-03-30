@@ -324,7 +324,6 @@ class EvalPreprocessData(MetaParameters):
         #     new_masks = rescale(new_masks, (scale, scale, 1), anti_aliasing = False, order=0)
         # ###########################################################################################
 
-
         return new_images, new_masks, [center_row, center_column]
 
     def normalization(self, image):
