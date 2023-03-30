@@ -1,5 +1,8 @@
 from configuration import *
 from Validation.metrics import *
+from Training.dataset import *
+from Preprocessing.split_dataset import *
+
 
 #########################################################################################################################
 ##TODO: COMMENTS
@@ -70,15 +73,10 @@ class PlotResults(MetaParameters):
                 self.prepare_plot(predicted_masks[7][i], predicted_masks[8][i], predicted_masks[9][i], predicted_masks[10][i])
 
 
-test_ds_origin = pd.read_pickle(
-    f'{meta.PREPROCESSED_DATASET}{meta.DATASET_NAME}_test_origin.pickle'
-)
-test_ds_mask = pd.read_pickle(
-    f'{meta.PREPROCESSED_DATASET}{meta.DATASET_NAME}_test_mask.pickle'
-)
-test_ds_names = pd.read_pickle(
-    f'{meta.PREPROCESSED_DATASET}{meta.DATASET_NAME}_test_sub_names.pickle'
-)
+test_ds = GetData(test_list).generated_data_list()
+test_ds_origin = test_ds[0]
+test_ds_mask = test_ds[1]
+test_ds_names = test_ds[2]
 
 test_set = MyDataset(meta.NUM_LAYERS, test_ds_origin, test_ds_mask, test_ds_names, meta.KERNEL_SZ, target_transform, target_transform)
 test_batch_size = len(test_set)

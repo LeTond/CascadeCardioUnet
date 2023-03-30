@@ -9,12 +9,67 @@ import torchvision.transforms as transforms
 from torch.utils.data import Dataset
 # from configuration import *
 
+from Preprocessing.preprocessing import *
+from parameters import *
+# from configuration import *
+from parameters import MetaParameters
+from Preprocessing.dirs_logs import *
+from Evaluation.evaluation import *
+
 
 ########################################################################################################################
 ##TODO: COMMENTS
 ########################################################################################################################
 
 ##TODO: Delete pickle part and realize all preprocessing and augmentation right into the MyDataset class
+
+class GetData(MetaParameters):
+    
+    def __init__(self, files): 
+        
+        super(MetaParameters, self).__init__()
+        self.files = files
+
+    def get_images_masks(self, file_name):
+
+        images = view_matrix(read_nii(f"{self.ORIGS_DIR}/{file_name}"))
+        masks = view_matrix(read_nii(f"{self.MASKS_DIR}/{file_name}"))
+
+        return images, masks
+
+    def generated_data_list(self):
+        list_images, list_masks, list_names = [], [], []
+
+        for file_name in self.files:
+            if file_name.endswith('.nii'):
+                images, masks = self.get_images_masks(file_name)
+                sub_name = file_name.replace('.nii', '')
+
+
+                ## Move this part into the MyDataset.preprocessing/normalization method 
+                if self.PRESEGMENTATION is True:
+                    preseg = EvalPreprocessData(images, masks).presegmentation_tissues()
+                    images = preseg[0]
+                    masks = preseg[1] 
+
+                for slc in range(images.shape[2]):
+                    image = images[:, :, slc]
+                    mask = masks[:, :, slc]
+                    
+                    # if (mask==4).any() or 0 <= (mask[mask == 3].sum() + 1) / (mask[mask == 2].sum() + 1) < 0.03:
+                    if (mask!=4).any():
+                        normalized = PreprocessData(image, mask).normalization()
+                            
+                        list_images.append(normalized[0])
+                        list_masks.append(normalized[1])
+                        list_names.append(f'{sub_name} Slice {images.shape[2] - slc}')
+                    
+        print(f'Count of slice in dataset: {len(list_names)}')
+        shuff = shuff_dataset(list_images, list_masks, list_names)
+
+        return list_images, list_masks, list_names
+
+
 class MyDataset(Dataset):
 
     def __init__(self, num_layers, ds_origin, ds_mask, ds_names, kernel_sz, transform = None, target_transform = None, images_and_labels = []):
@@ -73,5 +128,4 @@ class MyDataset(Dataset):
 
     def __len__(self):
         return len(self.images)
-
 
