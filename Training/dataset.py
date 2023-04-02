@@ -56,17 +56,23 @@ class GetData(MetaParameters):
                     image = images[:, :, slc]
                     mask = masks[:, :, slc]
                     
-                    # if (mask==4).any() or 0 <= (mask[mask == 3].sum() + 1) / (mask[mask == 2].sum() + 1) < 0.03:
-                    if (mask!=4).any():
-                        normalized = PreprocessData(image, mask).normalization()
-                            
+                    # if (mask!=4).any() or (mask!=0).any() or slc < 9:
+                    if (mask==4).any():
+                        print(f"Subject {sub_name} slice {slc} was passed")
+                        pass
+                    else:
+                        normalized = PreprocessData(image, mask).preprocessing(self.KERNEL_SZ)
+                        
                         list_images.append(normalized[0])
                         list_masks.append(normalized[1])
+
                         list_names.append(f'{sub_name} Slice {images.shape[2] - slc}')
                     
-        print(f'Count of slice in dataset: {len(list_names)}')
-        shuff = shuff_dataset(list_images, list_masks, list_names)
-
+        # print(f'Count of slice in dataset: {len(list_names)}')
+        try:
+            shuff = shuff_dataset(list_images, list_masks, list_names)
+        except:
+            pass
         return list_images, list_masks, list_names
 
 
@@ -96,18 +102,12 @@ class MyDataset(Dataset):
         tcat = torch.cat((image, label), 0)
         image, label = self.transform(tcat)
 
-        image = self.normalization(image)
         image = np.array(image.reshape(self.kernel_sz, self.kernel_sz, 1), dtype=np.float32)
         label = np.array(label.reshape(self.kernel_sz, self.kernel_sz, 1), dtype=np.float32)
 
         label = label * (self.num_layers - 1)
 
         return image, label
-
-    @staticmethod
-    def normalization(image):
-        normalize = transforms.Compose([transforms.ToPILImage(),transforms.ToTensor(), transforms.Normalize(0.5,0.5)])
-        return normalize(image)
 
     def __getitem__(self, item):
         imgs, labs, sub_nms = self.images_and_labels[item]

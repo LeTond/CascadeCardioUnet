@@ -31,14 +31,20 @@ valid_ds_names = valid_ds[2]
 
 train_set = MyDataset(meta.NUM_LAYERS, train_ds_origin, train_ds_mask, train_ds_names, meta.KERNEL_SZ, target_transform,
                       target_transform)
+
 for i in range(7):
     train_set += MyDataset(meta.NUM_LAYERS, train_ds_origin, train_ds_mask, train_ds_names, meta.KERNEL_SZ, transform, target_transform)
-train_loader = DataLoader(train_set, meta.BT_SZ, drop_last=True, shuffle=True, pin_memory=True)
+    # for salc in range(len(train_ds_names)):
+    #     slc_name = int(train_ds_names[salc].split(" ")[2])
+    #     if slc_name == 1 or slc_name == 9:
+    #         train_set += MyDataset(meta.NUM_LAYERS, train_ds_origin[salc-1:salc+1], train_ds_mask[salc-1:salc+1], train_ds_names[salc-1:salc+1], meta.KERNEL_SZ, transform, target_transform)
+train_loader = DataLoader(train_set, meta.BT_SZ, drop_last=True, shuffle=True, pin_memory=False)
+
 
 valid_set = MyDataset(meta.NUM_LAYERS, valid_ds_origin, valid_ds_mask, valid_ds_names, meta.KERNEL_SZ, target_transform,
                       target_transform)
 valid_batch_size = len(valid_set)
-valid_loader = DataLoader(valid_set, valid_batch_size, drop_last=True, shuffle=True, pin_memory=True)
+valid_loader = DataLoader(valid_set, valid_batch_size, drop_last=True, shuffle=True, pin_memory=False)
 
 
 print(f'Train size: {len(train_set)} | Valid size: {len(valid_set)}')

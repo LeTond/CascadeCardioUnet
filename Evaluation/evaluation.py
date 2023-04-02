@@ -12,20 +12,13 @@ from matplotlib.backends.backend_pdf import PdfPages
 
 from Model.unet2D import UNet_2D, UNet_2D_AttantionLayer
 from parameters import *
-from Evaluation.metrics import *
 from Preprocessing.preprocessing import *
 from skimage.transform import resize, rescale, downscale_local_mean
-
+from configuration import *
 
 #########################################################################################################################
 ##TODO: COMMENTS
 #########################################################################################################################
-# def crop_transforms(image, kernel_sz):
-    # crop_image = crop_center(image, kernel_sz, kernel_sz)
-    # crop_image = crop_image.reshape(kernel_sz, kernel_sz, 1)
-    # return crop_image
-
-
 class PdfSaver():
     ...
 
@@ -156,6 +149,7 @@ def pdf_predictions(Net, file_name, kernel_sz, images, image_shp, fov_size, eval
 class PredictionMask():
     def __init__(self, model):         
         self.model = model
+        self.device = device
 
     def predict(self, image):
         self.model.eval()
@@ -174,20 +168,31 @@ class NiftiSaver(MetaParameters):
     def __init__(self):         
         super(MetaParameters, self).__init__()
 
-    def expand_matrix(self, mask, row_img, column_img, def_cord = None):
+    def expand_matrix(self, mask, row_img, column_img, def_cord):
         
-        zero_matrix = np.zeros((row_img, column_img))  
-        row_msk, column_msk = mask.shape
+        zero_matrix = np.zeros((row_img, column_img))
 
         if def_cord is None:
-            zero_matrix = resize(mask, (row_img, column_img), anti_aliasing = False, order=0)
+            row_msk, column_msk = mask.shape
+            max_kernel = max(row_img, column_img)
+            mask = rescale(mask, (max_kernel/mask.shape[0], max_kernel/mask.shape[1]), anti_aliasing = False, order=0)            
+            zero_matrix = mask[: row_img, : column_img]
+            # zero_matrix = resize(mask, (row_img, column_img), anti_aliasing = False, order=0)
+        elif def_cord is not None:
+            print(def_cord)
+        # ##  восстанавливаем размеры матрицы кропнутой до PRESEG_KERNEL на PRESEG_KERNEL по координатам центра 
+            
+            print('maasage 1')
+            X = (def_cord[0] - self.PRESEG_KERNEL // 2)    ## 76 - 32 = 44
+            Y = (def_cord[1] - self.PRESEG_KERNEL // 2)    ## 105 - 32 = 73
+            print('maasage 2')
 
-        else:
-            ##  восстанавливаем размеры матрицы кропнутой до 64 на 64 по координатам центра 
-            X = (def_cord[0] - 64 // 2)    ## 76 - 32 = 44
-            Y = (def_cord[1] - 64 // 2)    ## 105 - 32 = 73
-            zero_matrix[X: X + 64, Y: Y + 64] = mask
+            print(X, Y)
+            zero_matrix[X: X + self.PRESEG_KERNEL, Y: Y + self.PRESEG_KERNEL] = mask
+            print(zero_matrix.shape)
+            print('maasage 3')
 
+        
         return zero_matrix
 
     def save_predictions(self, Net, file_name, kernel_sz, images, image_shp, fov_size, def_cord, evaluate_directory):
@@ -199,9 +204,17 @@ class NiftiSaver(MetaParameters):
             predict = np.reshape(predict, (kernel_sz, kernel_sz))
             predict = np.array(predict, dtype = np.float32)
             
-            if self.PRESEGMENTATION is True:
+            if def_cord is not None:
+                print(def_cord)
+                print('maasage 4')
+
                 predict = self.expand_matrix(predict, image_shp[0], image_shp[1], def_cord)
+                print('maasage 5')
+                
+                print(image_shp, fov_size)
             else:
+                print('maasage 6')
+
                 predict = self.expand_matrix(predict, image_shp[0], image_shp[1], None)
 
             predict = resize(predict, (image_shp[0], image_shp[1]), anti_aliasing_sigma = False)
@@ -223,13 +236,14 @@ class NiftiSaver(MetaParameters):
 
 class GetListImages(MetaParameters):
     
-    def __init__(self, file_name, path_to_data, dataset_path):         
+    def __init__(self, file_name, path_to_data, dataset_path, preseg):         
         super(MetaParameters, self).__init__()
         self.file_name = file_name
         self.path_to_data = path_to_data
         self.dataset_path = dataset_path
+        self.preseg = preseg
 
-    def array_list(self):
+    def array_list(self, kernel_sz):
         
         list_images = []
         count = 0
@@ -240,15 +254,15 @@ class GetListImages(MetaParameters):
 
         orig_img_shape = images.shape
 
-        if self.PRESEGMENTATION is True:
-            masks = view_matrix(read_nii(f"{self.path_to_data}{self.KERNEL_SZ}mask_NEW/{self.file_name}"))
+        if self.preseg:
+            masks = view_matrix(read_nii(f"{self.path_to_data}{self.file_name}"))
             images, masks, def_coord = EvalPreprocessData(images, masks).presegmentation_tissues()
 
         for slc in range(images.shape[2]):
             count += 1
             image = images[:, :, slc]
                 
-            normalized = EvalPreprocessData(images, masks = None).normalization(image)
+            normalized = PreprocessData(image, mask=None).preprocessing(kernel_sz)[0]
             list_images.append(normalized)
 
         return list_images, orig_img_shape, fov, def_coord
@@ -289,67 +303,16 @@ class EvalPreprocessData(MetaParameters):
         center_row = (mean_bot + mean_top) // 2
         center_column = (mean_left + mean_right) // 2 
 
-        new_size = max((mean_bot - mean_top), (mean_right - mean_left))
+        ## TODO: подумать о обрезке не квадратной а по контуру ровно...
+        max_kernel = max((mean_bot - mean_top), (mean_right - mean_left))
 
-        # gap = new_size // 2 + round(0.05 * base_kernel)
+        # gap = max_kernel // 2 + round(0.05 * base_kernel)
         gap = 32
 
-        new_images = self.images[center_row - gap: center_row + gap, center_column - gap: center_column + gap, :]
-        new_masks = self.masks[center_row - gap: center_row + gap, center_column - gap: center_column + gap, :]
+        images = self.images[center_row - gap: center_row + gap, center_column - gap: center_column + gap, :]
+        masks = self.masks[center_row - gap: center_row + gap, center_column - gap: center_column + gap, :]
 
-        ## Variant 1 ##
-        ####### Меняем разрешение на назрешением матрицы из метадата
-        scale =  self.KERNEL_SZ / new_size
-        new_images = rescale(new_images, (scale, scale, 1), anti_aliasing = False)
-        new_masks = rescale(new_masks, (scale, scale, 1), anti_aliasing = False, order=0)
-        ###########################################################################################
-
-        # ## Variant 2 ##
-        # # Достройка матрицы до квадрата ядра
-        # if new_size < self.KERNEL_SZ:
-        #     print(f"Start expanding matrix from {new_images.shape} to {self.KERNEL_SZ, self.KERNEL_SZ, shp[2]}")
-        #     zero_matrix_1 = np.zeros((self.KERNEL_SZ, self.KERNEL_SZ, shp[2]))
-        #     zero_matrix_2 = np.zeros((self.KERNEL_SZ, self.KERNEL_SZ, shp[2]))
-
-        #     zero_matrix_1[: (2 * gap), : (2 * gap), :] = new_images
-        #     zero_matrix_2[: (2 * gap), : (2 * gap), :] = new_masks
-
-        #     new_images = zero_matrix_1
-        #     new_masks = zero_matrix_2
-
-        # else:
-        #     print(f"Start rescaling from {new_images.shape} to {self.KERNEL_SZ, self.KERNEL_SZ, shp[2]}")
-        #     scale =  self.KERNEL_SZ / new_size
-        #     new_images = rescale(new_images, (scale, scale, 1), anti_aliasing = False)
-        #     new_masks = rescale(new_masks, (scale, scale, 1), anti_aliasing = False, order=0)
-        # ###########################################################################################
-
-        return new_images, new_masks, [center_row, center_column]
-
-    def normalization(self, image):
-
-        image = np.array(image, dtype = np.float32)
-        shp = image.shape
-        max_kernel = max(image.shape[0], image.shape[1])
-        image = resize(image, (max_kernel, max_kernel), anti_aliasing = False)
-        image_max = np.max(image)
-
-        if self.CLIP_RATE is not None:
-            image = np.clip(image, self.CLIP_RATE[0] * image_max, self.CLIP_RATE[1] * image_max)
-
-        image_max = np.max(image)
-        image = image / image_max
-        scale = self.KERNEL_SZ / max_kernel 
-        image = rescale(image, scale, anti_aliasing = False)
-
-        image = self.normalize_transform(image)
-        image = np.array(image.reshape(self.KERNEL_SZ, self.KERNEL_SZ, 1), dtype=np.float32)
-        
-        return image
-
-    def normalize_transform(self, image):
-        normalize_transform = transforms.Compose([transforms.ToPILImage(), transforms.ToTensor(), transforms.Normalize(0.5, 0.5)])
-        return normalize_transform(image)
+        return images, masks, [center_row, center_column]
 
 
 # def benchmark(func):
@@ -359,16 +322,6 @@ class EvalPreprocessData(MetaParameters):
 #         end = time.time()
 #         print('[*] Время выполнения: {} секунд.'.format(end-start))
 #     return wrapper
-
-
-# def revision_mean_value(mean_val, base_kernel, gap):
-    # if mean_val > (base_kernel - gap):
-    #     mean_val = (base_kernel - gap)
-
-    # elif mean_val < gap:
-    #     mean_val = gap
-
-    # return mean_val
 
 
 

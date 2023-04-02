@@ -1,9 +1,7 @@
 from configuration import *
 from parameters import MetaParameters
-
-from Evaluation.metrics import DiceLoss
+from Validation.metrics import DiceLoss
 ds = DiceLoss()
-
 
 
 ########################################################################################################################
@@ -74,7 +72,7 @@ class TrainNetwork(MetaParameters):
             for inputs, labels, sub_names in self.train_loader:
                 inputs, labels, sub_names = inputs.to(self.device), labels.to(self.device), list(sub_names)   
           
-                predict = self.model(inputs)
+                predict = torch.softmax(self.model(inputs), dim=1)
                 train_loss = loss_function(predict, labels)
 
                 self.optimizer.zero_grad()

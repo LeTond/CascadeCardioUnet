@@ -1,6 +1,7 @@
 from Preprocessing.preprocessing import view_matrix, read_nii
 from parameters import meta 
 from Preprocessing.dirs_logs import *
+from Training.dataset import *
 
 from configuration import *
 
@@ -60,24 +61,7 @@ def dice(test=None, reference=None, confusion_matrix=None, nan_for_nonexisting=T
     return float(2. * tp / (2 * tp + fp + fn))
 
 
-def metrics(index, label, prediction, metric_name):
-    smooth = 1e-5
-    GT = label.sum()
-    CM = prediction.sum()
-    TP = (label * prediction).sum()
-    FN = np.abs(GT - TP)
-    FP = np.abs(CM - TP)
-    TN = np.abs(112*112 - GT - FP)
-    
-    precision = round(float((TP + smooth) / (TP + FP + smooth)), 2)
-    recall = round(float((TP + smooth) / (TP + FN + smooth)), 2)    
-    accuracy = round(float((TP + TN + smooth) / (TP + TN + FP + FN + smooth)), 2)
-    dice = round(float((2 * TP + smooth) / (2 * TP + FP + FN + smooth)), 2)
-
-    return precision, recall, accuracy, dice 
-
-
-def volumes(index, labe_fib, pred_fib, labe_myo, pred_myo):
+def volumes(labe_fib, pred_fib, labe_myo, pred_myo):
     smooth = 0.0001
 
     GT_fib = labe_fib.sum()
@@ -89,18 +73,23 @@ def volumes(index, labe_fib, pred_fib, labe_myo, pred_myo):
     Vcm = round(float((CM_fib + smooth) / (CM_myo + CM_fib + smooth) * 100), 2)
     
     # return Vgt, Vcm
-    return GT_fib, CM_fib
+    return GT_myo, CM_myo, GT_fib, CM_fib
 
 
 def bland_altman(predicted_masks):
-    GT, CM = [], []
+    GT_fib, CM_fib = [], []
+    GT_myo, CM_myo = [], []
+
     lv_volume, myo_volume, fib_volume = 0, 0, 0
     True_lv_volume, True_myo_volume, True_fib_volume = 0, 0, 0
 
     for i in range(predicted_masks[0][0]):
 
-        GT.append(volumes(i, predicted_masks[5][i], predicted_masks[6][i], predicted_masks[4][i], predicted_masks[3][i])[0])
-        CM.append(volumes(i, predicted_masks[5][i], predicted_masks[6][i], predicted_masks[4][i], predicted_masks[3][i])[1])
+        GT_myo.append(volumes(predicted_masks[5][i], predicted_masks[6][i], predicted_masks[4][i], predicted_masks[3][i])[0])
+        CM_myo.append(volumes(predicted_masks[5][i], predicted_masks[6][i], predicted_masks[4][i], predicted_masks[3][i])[1])
+
+        GT_fib.append(volumes(predicted_masks[5][i], predicted_masks[6][i], predicted_masks[4][i], predicted_masks[3][i])[2])
+        CM_fib.append(volumes(predicted_masks[5][i], predicted_masks[6][i], predicted_masks[4][i], predicted_masks[3][i])[3])
 
         lv_volume += predicted_masks[1][i].numpy().sum()
         myo_volume += predicted_masks[3][i].numpy().sum()
@@ -112,20 +101,24 @@ def bland_altman(predicted_masks):
         
     size = predicted_masks[0][0]
 
-    # mean_True_lv_volume = 0
     mean_True_lv_volume = round(True_lv_volume / size * 4)
     mean_True_myo_volume = round(True_myo_volume / size * 4)
     mean_True_fib_volume = round(True_fib_volume / size * 4)
 
-    # mean_lv_volume = 0
     mean_lv_volume = round(lv_volume / size * 4)
     mean_myo_volume = round(myo_volume / size * 4)
     mean_fib_volume = round(fib_volume / size * 4)
 
-    print(f'Mean Pred LV Volume: {mean_lv_volume}, Mean Pred MYO Volume: {mean_myo_volume}, Mean Pred FIB Volume: {mean_fib_volume}')
-    print(f'Mean True LV Volume: {mean_True_lv_volume}, Mean True MYO Volume: {mean_True_myo_volume}, Mean True FIB Volume: {mean_True_fib_volume}')
-        
-    return GT, CM
+    # print(f'Mean Pred LV Volume: {mean_lv_volume}, Mean Pred MYO Volume: {mean_myo_volume}, Mean Pred FIB Volume: {mean_fib_volume}')
+    # print(f'Mean True LV Volume: {mean_True_lv_volume}, Mean True MYO Volume: {mean_True_myo_volume}, Mean True FIB Volume: {mean_True_fib_volume}')
+
+    mean_GT_myo = np.mean(GT_myo)
+    mean_CM_myo = np.mean(CM_myo)
+    
+    mean_GT_fib = np.mean(GT_fib)
+    mean_CM_fib = np.mean(CM_fib)
+
+    return mean_GT_myo, mean_CM_myo, mean_GT_fib, mean_CM_fib, mean_myo_volume, mean_fib_volume
 
 
 def create_hist(value_list: list):
@@ -161,7 +154,7 @@ def image_parameters(predicted_masks):
         all_values_myo.append(ds(predicted_masks[3][i], predicted_masks[4][i]))
         all_values_fib.append(ds(predicted_masks[5][i], predicted_masks[6][i]))
 
-        fib_metrics = metrics(predicted_masks[7][i], predicted_masks[6][i], predicted_masks[5][i], 'FIB')
+        fib_metrics = TissueContrast().metrics(predicted_masks[6][i], predicted_masks[5][i], 'FIB')
         precision += fib_metrics[0]
         recall += fib_metrics[1]
         accur += fib_metrics[2]
@@ -219,7 +212,7 @@ def get_orig_slice(sub_name):
     return sub_name_list
 
 
-def define_image_contrast(predicted_masks, kernel_sz):
+# def define_image_contrast(predicted_masks, kernel_sz):
 
     smooth = 1e-5
 
@@ -293,8 +286,96 @@ def define_image_contrast(predicted_masks, kernel_sz):
 
 
 
+class TissueContrast(MetaParameters):
+
+    def __init__(self):         
+        super(MetaParameters, self).__init__()
 
 
+
+    def define_image_contrast(self, predicted_masks):
+
+        smooth = 1e-5
+
+        for i in range(predicted_masks[0][0]):
+
+            fib_matrix = predicted_masks[5][i]
+            myo_matrix = predicted_masks[3][i]
+            fiblab_matrix = predicted_masks[6][i]
+            myolab_matrix = predicted_masks[4][i]
+            lvlab_matrix = predicted_masks[2][i]
+            sub_name = predicted_masks[7][i]
+
+            metric_dice = self.metrics(fib_matrix, fiblab_matrix, 'FIB')[3]
+            metric_dice2 = self.metrics(myo_matrix, myolab_matrix, 'MYO')[3]
+
+            # if metric_dice < 0.4:
+
+            orig_slc = int(get_orig_slice(sub_name)[2]) 
+            orig_sub = str(get_orig_slice(sub_name)[0])
+            
+            images_matrix = view_matrix(read_nii(f"{self.ORIGS_DIR}/{orig_sub}.nii"))[:,:,-orig_slc] 
+            masks_matrix = view_matrix(read_nii(f"{self.MASKS_DIR}/{orig_sub}.nii"))[:,:,-orig_slc] 
+
+            # orig_matrix = view_matrix(read_nii(f"{path_to_origs}/{orig_sub}.nii"))[:,:,-orig_slc]            
+            # orig_matrix = crop_center(orig_matrix, kernel_sz, kernel_sz)
+            # origlab_matrix = view_matrix(read_nii(f"{path_to_masks}/{orig_sub}.nii"))[:,:,-orig_slc]
+            # origlab_matrix = crop_center(origlab_matrix, kernel_sz, kernel_sz) 
+
+            fib_matrix = np.copy(masks_matrix)
+            fib_matrix[fib_matrix != 3] = 0   #2
+            fib_matrix[fib_matrix == 3] = 1   #3
+            fib_orig_matrix = images_matrix * fib_matrix #4
+            summ_fib_matrix = fib_matrix.sum()          #5
+            summ_fib_orig_matrix = fib_orig_matrix.sum()    #6
+            mean_contrast_fib = round(float((summ_fib_orig_matrix + smooth) / (summ_fib_matrix + smooth)), 2)   #7
+
+            myo_matrix = np.copy(masks_matrix)
+            myo_matrix[myo_matrix != 2] = 0   #2
+            myo_matrix[myo_matrix == 2] = 1   #3
+            myo_orig_matrix = images_matrix * myo_matrix   #4
+            summ_myo_matrix = myo_matrix.sum()   #5
+            summ_myo_orig_matrix = myo_orig_matrix.sum()   #6
+            mean_contrast_myo = round(float((summ_myo_orig_matrix + smooth) / (summ_myo_matrix + smooth)), 2)   #7
+
+            lv_matrix = np.copy(masks_matrix)
+            lv_matrix[lv_matrix != 1] = 0   #2
+            lv_matrix[lv_matrix == 1] = 1   #3
+            lv_orig_matrix = images_matrix * lv_matrix #4
+            summ_lv_matrix = lv_matrix.sum()          #5
+            summ_lv_orig_matrix = lv_orig_matrix.sum()    #6
+            mean_contrast_lv = round(float((summ_lv_orig_matrix + smooth) / (summ_lv_matrix + smooth)), 2)   #7
+
+
+            # diff_contrast = round((mean_contrast_fib - mean_contrast_lv + 1) / (mean_contrast_lv + 1) * 100, 2)
+
+            # if mean_contrast_lv < 10:
+                # pass 
+            # else:
+            diff_contrast = round((mean_contrast_fib + smooth) / (mean_contrast_lv + smooth) * 100, 2)
+
+            # output_massage = f"{predicted_masks[7][i]} || Lab_FIB: {summ_fib_matrix} || Pred_FIB: {predicted_masks[5][i].numpy().sum()} || MeanValLV: {mean_contrast_lv} || MeanValFib: {mean_contrast_fib} || MeanValMyo: {mean_contrast_myo} || DiffVal: {diff_contrast} || DiceFib: {metric_dice}"
+            # output_massage = f"{predicted_masks[7][i]} || DiffVal: {diff_contrast} || DiceFib: {metric_dice}"        
+            
+            output_massage = f"{predicted_masks[7][i]} || DiffVal: {diff_contrast} || {summ_fib_matrix} || DiceFib: {metric_dice}"
+            print(output_massage)
+            # print(f'{predicted_masks[7][i]} || label_pixels_myo: {summ_myo_matrix} || pred_pixels_myo: {predicted_masks[3][i].numpy().sum()} || Mean value MYO: {mean_contrast_myo}')
+
+    def metrics(self, label, prediction, metric_name):
+        smooth = 1e-5
+        GT = label.sum()
+        CM = prediction.sum()
+        TP = (label * prediction).sum()
+        FN = np.abs(GT - TP)
+        FP = np.abs(CM - TP)
+        TN = np.abs(self.KERNEL_SZ * self.KERNEL_SZ - GT - FP)
+        
+        precision = round(float((TP + smooth) / (TP + FP + smooth)), 2)
+        recall = round(float((TP + smooth) / (TP + FN + smooth)), 2)    
+        accuracy = round(float((TP + TN + smooth) / (TP + TN + FP + FN + smooth)), 2)
+        dice = round(float((2 * TP + smooth) / (2 * TP + FP + FN + smooth)), 2)
+
+        return precision, recall, accuracy, dice 
 
 
 

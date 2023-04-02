@@ -14,23 +14,24 @@ import pandas as pd
 import torchvision.transforms.functional as TF
 import torchvision.transforms as transforms
 import statsmodels.api as sm
+import matplotlib.pyplot as plt
 
 from torch import nn
-# from matplotlib import pylab as plt
-import matplotlib.pyplot as plt
 from torch.utils.data import DataLoader
 from sklearn import preprocessing  # pip install scikit-learn
 
 from Training.dataset import MyDataset
+from Training.ranger import Ranger
+from Training.optimizer import Lion
+
 from parameters import MetaParameters
 from Preprocessing.dirs_logs import create_dir, create_dir_log, log_stats
 from Model.unet2D import UNet_2D_mini, UNet_2D, UNet_2D_AttantionLayer, U_Net, CNN, UNetResnet, SegNet
 from Model.FCT.utils.model import FCT
 from Model.resnet import ResNet, BasicBlock
-from Training.ranger import Ranger
+
 # from Model.models import bounding_box_CNN
-from Training.optimizer import Lion
-# from Preprocessing.save_to_pickle import SaveDataset
+
 
 ########################################################################################################################
 # Show software and harware
@@ -60,6 +61,7 @@ def device():
 
 
 device = device()
+
 print(device)
 
 ########################################################################################################################

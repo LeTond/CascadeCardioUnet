@@ -188,85 +188,60 @@ class ExportImage():
 
 class PreprocessData(MetaParameters):
 
-    def __init__(self, image, mask):         
+    def __init__(self, image, mask = None):         
         super(MetaParameters, self).__init__()
         self.image = image
         self.mask = mask
 
-    def normalization(self):
+    def preprocessing(self, kernel_sz):
         image = np.array(self.image, dtype = np.float32)
-        mask = np.array(self.mask, dtype = np.float32)
+        image = self.clipping(image)
+        image = self.normalization(image)
+        image = self.equalization_matrix(matrix = image)
+        image = self.rescale_matrix(kernel_sz, matrix = image, order = None)
+        image = np.array(image.reshape(kernel_sz, kernel_sz, 1), dtype = np.float32)
 
-        shp = image.shape
-        max_kernel = max(image.shape[0], image.shape[1])
+        if self.mask is not None:
+            mask = np.array(self.mask, dtype = np.float32)
+            mask = self.equalization_matrix(matrix = mask)
+            mask = self.rescale_matrix(kernel_sz, matrix = mask, order = 0)
+            mask = np.array(mask.reshape(kernel_sz, kernel_sz, 1), dtype = np.float32)
+        else:
+            mask = None
 
-        image = resize(image, (max_kernel, max_kernel), anti_aliasing = False)
-        mask = resize(mask, (max_kernel, max_kernel), anti_aliasing = False, order=0)
+        return image, mask
 
+    def clipping(self, image):
         image_max = np.max(image)
-
         if self.CLIP_RATE is not None:
             image = np.clip(image, self.CLIP_RATE[0] * image_max, self.CLIP_RATE[1] * image_max)
 
-        image_max = np.max(image)
-        image = image / image_max
+        return image
 
-        ## Variant 1 ##
-        ####### Меняем разрешение на назрешением матрицы из метадата
-        scale = self.KERNEL_SZ / max_kernel 
-        image = rescale(image, scale, anti_aliasing = False)
-        mask = rescale(mask, scale, anti_aliasing = False, order=0)
-        # ###########################################################################################
+    @staticmethod
+    def normalization(image):
+        mean, std = np.mean(image), np.std(image)
+        # image = (image - mean) / std
+        # image = (image - np.min(image)) / (np.max(image) - np.min(image))
+        image = image / np.max(image)
 
-        # ## Variant 2 ##
-        # # Достройка матрицы до квадрата ядра
-        # if max_kernel < self.KERNEL_SZ:
-        #     print(f"Start expanding matrix from {image.shape} to {self.KERNEL_SZ, self.KERNEL_SZ}")
-        #     zero_matrix_1 = np.zeros((self.KERNEL_SZ, self.KERNEL_SZ))
-        #     zero_matrix_2 = np.zeros((self.KERNEL_SZ, self.KERNEL_SZ))
+        return image
 
-        #     zero_matrix_1[: max_kernel, : max_kernel] = image
-        #     zero_matrix_2[: max_kernel, : max_kernel] = mask
+    @staticmethod
+    def equalization_matrix(matrix):
+        max_kernel = max(matrix.shape[0], matrix.shape[1])
+        zero_matrix = np.zeros((max_kernel, max_kernel))
+        zero_matrix[: matrix.shape[0], : matrix.shape[1]] = matrix
+        matrix = zero_matrix
 
-        #     image = zero_matrix_1
-        #     mask = zero_matrix_2
+        return matrix
 
-        # else:
-        #     print(f"Start rescaling from {image.shape} to {self.KERNEL_SZ, self.KERNEL_SZ}")
-        #     scale =  self.KERNEL_SZ / max_kernel
-        #     image = rescale(image, (scale, scale), anti_aliasing = False)
-        #     mask = rescale(mask, (scale, scale), anti_aliasing = False, order=0)
-        # ###########################################################################################
+    def rescale_matrix(self, kernel_sz, matrix, order=None):
+        shp = matrix.shape
+        max_kernel = max(matrix.shape[0], matrix.shape[1])
+        scale =  kernel_sz / max_kernel
+        # print(f"Start rescaling from {shp} to {self.KERNEL_SZ, self.KERNEL_SZ}")        
 
-        mask = np.array(mask.reshape(self.KERNEL_SZ, self.KERNEL_SZ, 1), dtype = np.float32)
-        image = np.array(image.reshape(self.KERNEL_SZ, self.KERNEL_SZ, 1), dtype = np.float32)
-        
-        return image, mask
-
-    # def crop_center_3D(img, kernel_sz):
-    #     y, x, z = img.shape
-    #     startx = x // 2-(kernel_sz // 2)
-    #     starty = y // 2-(kernel_sz // 2)    
-
-    #     return img[starty: starty + kernel_sz, startx: startx + kernel_sz, :]
-
-    # def crop_transforms_3D(image, mask, kernel_sz):
-    #     image = crop_center_3D(image, kernel_sz)
-    #     mask = crop_center_3D(mask, kernel_sz)
-
-    #     return image, mask
-
-    # def crop_center(img, cropx, cropy):
-    #     y, x = img.shape
-    #     startx = x // 2 - (cropx // 2)
-    #     starty = y // 2 - (cropy // 2)
-    #     return img[starty: starty + cropy, startx: startx + cropx]
-
-    # def crop_transforms(image, mask, kernel_sz):
-        
-    #     crop_image = crop_center(image, kernel_sz, kernel_sz)
-    #     crop_mask = crop_center(mask, kernel_sz, kernel_sz)
-        
-    #     return crop_image, crop_mask
+        return rescale(matrix, (scale, scale), anti_aliasing = False, order=order)
 
 
