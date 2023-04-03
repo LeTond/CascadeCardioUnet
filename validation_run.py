@@ -9,12 +9,6 @@ from Preprocessing.split_dataset import *
 #########################################################################################################################
 ##TODO: COMMENTS
 #########################################################################################################################
-# class Validation(MetaParameters):
-
-#     def __init__(self):         
-#         super(MetaParameters, self).__init__()
-
-
 class PlotResults(MetaParameters):
 
     def __init__(self):         
@@ -81,8 +75,14 @@ class PlotResults(MetaParameters):
             # dice_fib = round((float(ds(predicted_masks[5][i], predicted_masks[6][i]))), 3)
             # dice = round((self.dice_lv + self.dice_myo + self.dice_fib) / 3, 3)
             self.precision, self.recall, self.accur = fib_metrics[0], fib_metrics[1], fib_metrics[2]
-            if self.dice_fib < 0.2:
-                self.prepare_plot(predicted_masks[7][i], predicted_masks[8][i], predicted_masks[9][i], predicted_masks[10][i])
+            # if self.dice_fib < 0.2:
+            self.prepare_plot(predicted_masks[7][i], predicted_masks[8][i], predicted_masks[9][i], predicted_masks[10][i])
+
+
+# class Validation(MetaParameters):
+
+#     def __init__(self):         
+#         super(MetaParameters, self).__init__()
 
 
 test_ds = GetData(test_list).generated_data_list()

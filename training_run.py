@@ -17,6 +17,10 @@ from Preprocessing.split_dataset import *
 ########################################################################################################################
 # Creating loaders for training and validating network
 ########################################################################################################################
+# class Training(MetaParameters):
+#     def __init__(self):         
+#         super(MetaParameters, self).__init__()
+
 
 train_ds = GetData(train_list_01).generated_data_list()
 train_ds_origin = train_ds[0]
@@ -39,10 +43,10 @@ train_set = MyDataset(meta.NUM_LAYERS, train_ds_origin, train_ds_mask, train_ds_
 
 for i in range(7):
     train_set += MyDataset(meta.NUM_LAYERS, train_ds_origin, train_ds_mask, train_ds_names, kernel_sz, transform, target_transform)
-    for salc in range(len(train_ds_names)):
-        slc_name = int(train_ds_names[salc].split(" ")[2])
-        if slc_name == 1 or slc_name == 9:
-            train_set += MyDataset(meta.NUM_LAYERS, train_ds_origin[salc-1:salc+1], train_ds_mask[salc-1:salc+1], train_ds_names[salc-1:salc+1], kernel_sz, transform, target_transform)
+    # for salc in range(len(train_ds_names)):
+    #     slc_name = int(train_ds_names[salc].split(" ")[2])
+    #     if slc_name == 1 or slc_name == 9:
+    #         train_set += MyDataset(meta.NUM_LAYERS, train_ds_origin[salc-1:salc+1], train_ds_mask[salc-1:salc+1], train_ds_names[salc-1:salc+1], kernel_sz, transform, target_transform)
 train_loader = DataLoader(train_set, meta.BT_SZ, drop_last=True, shuffle=True, pin_memory=False)
 
 

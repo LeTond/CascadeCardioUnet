@@ -21,14 +21,14 @@ from torch.utils.data import DataLoader
 from sklearn import preprocessing  # pip install scikit-learn
 
 from Training.dataset import MyDataset
-from Training.ranger import Ranger
-from Training.optimizer import Lion
+# from Training.ranger import Ranger
+# from Training.optimizer import Lion
 
 from parameters import MetaParameters
 from Preprocessing.dirs_logs import create_dir, create_dir_log, log_stats
 from Model.unet2D import UNet_2D_mini, UNet_2D, UNet_2D_AttantionLayer, U_Net, CNN, UNetResnet, SegNet
-from Model.FCT.utils.model import FCT
-from Model.resnet import ResNet, BasicBlock
+# from Model.FCT.utils.model import FCT
+# from Model.resnet import ResNet, BasicBlock
 
 # from Model.models import bounding_box_CNN
 
