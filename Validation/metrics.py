@@ -179,7 +179,7 @@ def image_parameters(predicted_masks):
     return all_values_lv, all_values_myo, all_values_fib, mean_precision, mean_recall, mean_accur
 
 
-def prediction_masks(Net, device, loader_):
+def prediction_masks(Net, loader_):
     size = len(loader_.dataset)
     
     Net.eval()
@@ -212,86 +212,10 @@ def get_orig_slice(sub_name):
     return sub_name_list
 
 
-# def define_image_contrast(predicted_masks, kernel_sz):
-
-    smooth = 1e-5
-
-    for i in range(predicted_masks[0][0]):
-
-        fib_matrix = predicted_masks[5][i]
-        myo_matrix = predicted_masks[3][i]
-        fiblab_matrix = predicted_masks[6][i]
-        myolab_matrix = predicted_masks[4][i]
-        lvlab_matrix = predicted_masks[2][i]
-
-        metric_dice = metrics(i, fib_matrix, fiblab_matrix, 'FIB')[3]
-        metric_dice2 = metrics(i, myo_matrix, myolab_matrix, 'MYO')[3]
-
-        # if metric_dice < 0.4:
-
-        orig_slc = int( get_orig_slice( predicted_masks[7][i] )[2] ) 
-        orig_sub = str( get_orig_slice( predicted_masks[7][i] )[0] )
-        
-        orig_matrix = view_matrix(read_nii(f"{path_to_origs}/{orig_sub}.nii"))[:,:,-orig_slc]            
-        # orig_matrix = crop_center(orig_matrix, kernel_sz, kernel_sz)
-
-        origlab_matrix = view_matrix(read_nii(f"{path_to_masks}/{orig_sub}.nii"))[:,:,-orig_slc]
-        # origlab_matrix = crop_center(origlab_matrix, kernel_sz, kernel_sz) 
-
-        fib_matrix = origlab_matrix
-        fib_matrix[fib_matrix != 3] = 0   #2
-        fib_matrix[fib_matrix == 3] = 1   #3
-        fib_orig_matrix = orig_matrix * fib_matrix #4
-        summ_fib_matrix = fib_matrix.sum()          #5
-        summ_fib_orig_matrix = fib_orig_matrix.sum()    #6
-        mean_contrast_fib = round(float((summ_fib_orig_matrix + smooth) / (summ_fib_matrix + smooth)), 2)   #7
-
-        origlab_matrix = view_matrix(read_nii(f"{path_to_masks}/{orig_sub}.nii"))[:,:,-orig_slc]
-        # origlab_matrix = crop_center(origlab_matrix, kernel_sz, kernel_sz) 
-
-        myo_matrix = origlab_matrix
-        myo_matrix[myo_matrix != 2] = 0   #2
-        myo_matrix[myo_matrix == 2] = 1   #3
-        myo_orig_matrix = orig_matrix * myo_matrix   #4
-        summ_myo_matrix = myo_matrix.sum()   #5
-        summ_myo_orig_matrix = myo_orig_matrix.sum()   #6
-        mean_contrast_myo = round(float((summ_myo_orig_matrix + smooth) / (summ_myo_matrix + smooth)), 2)   #7
-
-
-        origlab_matrix = view_matrix(read_nii(f"{path_to_masks}/{orig_sub}.nii"))[:,:,-orig_slc]
-        # origlab_matrix = crop_center(origlab_matrix, kernel_sz, kernel_sz) 
-
-        lv_matrix = origlab_matrix
-        lv_matrix[lv_matrix != 1] = 0   #2
-        lv_matrix[lv_matrix == 1] = 1   #3
-        lv_orig_matrix = orig_matrix * lv_matrix #4
-        summ_lv_matrix = lv_matrix.sum()          #5
-        summ_lv_orig_matrix = lv_orig_matrix.sum()    #6
-        mean_contrast_lv = round(float((summ_lv_orig_matrix + smooth) / (summ_lv_matrix + smooth)), 2)   #7
-
-
-        # diff_contrast = round((mean_contrast_fib - mean_contrast_lv + 1) / (mean_contrast_lv + 1) * 100, 2)
-
-        # if mean_contrast_lv < 10:
-            # pass 
-        # else:
-        diff_contrast = round((mean_contrast_fib + smooth) / (mean_contrast_lv + smooth) * 100, 2)
-
-        # output_massage = f"{predicted_masks[7][i]} || Lab_FIB: {summ_fib_matrix} || Pred_FIB: {predicted_masks[5][i].numpy().sum()} || MeanValLV: {mean_contrast_lv} || MeanValFib: {mean_contrast_fib} || MeanValMyo: {mean_contrast_myo} || DiffVal: {diff_contrast} || DiceFib: {metric_dice}"
-        # output_massage = f"{predicted_masks[7][i]} || DiffVal: {diff_contrast} || DiceFib: {metric_dice}"        
-        
-        output_massage = f"{predicted_masks[7][i]} || DiffVal: {diff_contrast} || {summ_fib_matrix} || DiceFib: {metric_dice}"
-        print(output_massage)
-        # print(f'{predicted_masks[7][i]} || label_pixels_myo: {summ_myo_matrix} || pred_pixels_myo: {predicted_masks[3][i].numpy().sum()} || Mean value MYO: {mean_contrast_myo}')
-
-
-
 class TissueContrast(MetaParameters):
 
     def __init__(self):         
         super(MetaParameters, self).__init__()
-
-
 
     def define_image_contrast(self, predicted_masks):
 
@@ -368,7 +292,7 @@ class TissueContrast(MetaParameters):
         TP = (label * prediction).sum()
         FN = np.abs(GT - TP)
         FP = np.abs(CM - TP)
-        TN = np.abs(self.KERNEL_SZ * self.KERNEL_SZ - GT - FP)
+        TN = np.abs(self.KERNEL * self.KERNEL - GT - FP)
         
         precision = round(float((TP + smooth) / (TP + FP + smooth)), 2)
         recall = round(float((TP + smooth) / (TP + FN + smooth)), 2)    

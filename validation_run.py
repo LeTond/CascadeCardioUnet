@@ -9,31 +9,36 @@ from Preprocessing.split_dataset import *
 #########################################################################################################################
 ##TODO: COMMENTS
 #########################################################################################################################
-class Validation(MetaParameters):
+# class Validation(MetaParameters):
 
-    def __init__(self, device):         
-        super(MetaParameters, self).__init__()
-        self.device = device
+#     def __init__(self):         
+#         super(MetaParameters, self).__init__()
 
 
 class PlotResults(MetaParameters):
 
     def __init__(self):         
         super(MetaParameters, self).__init__()
+        self.kernel_sz = self.CROPP_KERNEL
 
     def save_plot(self, sub_names, origImage, origMask, predMask):
         pp = PdfPages('results.pdf')
-        num = len(sub_names)
+        slices = len(sub_names)
         figure, ax = plt.subplots(nrows = 1, ncols = 3, figsize = (8, 8))
-        for i in range(num):
 
-            ax[0].imshow(np.resize(origImage[i].cpu(), (self.KERNEL_SZ, self.KERNEL_SZ)), plt.get_cmap('gray'))
-            ax[1].imshow(np.resize(origImage[i].cpu(), (self.KERNEL_SZ, self.KERNEL_SZ)), plt.get_cmap('gray'))
-            ax[1].imshow(np.resize(predMask[i].cpu(), (self.KERNEL_SZ, self.KERNEL_SZ)), alpha = 0.5)
-            ax[2].imshow(np.resize(origImage[i].cpu(), (self.KERNEL_SZ, self.KERNEL_SZ)), plt.get_cmap('gray'))
-            ax[2].imshow(np.resize(origMask[i].cpu(), (self.KERNEL_SZ, self.KERNEL_SZ)), alpha = 0.5)
+        origImage = np.resize(origImage.cpu(), (self.kernel_sz, self.kernel_sz, slices))
+        predMask = np.resize(predMask.cpu(), (self.kernel_sz, self.kernel_sz, slices))
+        origMask = np.resize(origMask.cpu(), (self.kernel_sz, self.kernel_sz, slices))
+
+        for slc in range(slices):
             
-            ax[0].set_title(f"{sub_names[i]}", fontsize = 8, fontweight = 'bold')
+            ax[0].imshow(origImage[slc], plt.get_cmap('gray'))
+            ax[1].imshow(origImage[slc], plt.get_cmap('gray'))
+            ax[1].imshow(predMask[slc], alpha = 0.5)
+            ax[2].imshow(origImage[slc], plt.get_cmap('gray'))
+            ax[2].imshow(origMask[slc], alpha = 0.5)
+            
+            ax[0].set_title(f"{sub_names[slc]}", fontsize = 8, fontweight = 'bold')
             ax[1].set_title("Predicted mask", fontsize = 8, fontweight='bold')
             ax[2].set_title("Manual mask", fontsize = 8, fontweight ='bold')
             figure.tight_layout()
@@ -43,11 +48,16 @@ class PlotResults(MetaParameters):
 
     def prepare_plot(self, sub_names, origImage, origMask, predMask):
         figure, ax = plt.subplots(nrows = 1, ncols = 3, figsize = (8, 8))
-        ax[0].imshow(np.resize(origImage.cpu(), (self.KERNEL_SZ, self.KERNEL_SZ)), plt.get_cmap('gray'))
-        ax[1].imshow(np.resize(origImage.cpu(), (self.KERNEL_SZ, self.KERNEL_SZ)), plt.get_cmap('gray'))
-        ax[1].imshow(np.resize(predMask.cpu(), (self.KERNEL_SZ, self.KERNEL_SZ)), alpha = 0.5)
-        ax[2].imshow(np.resize(origImage.cpu(), (self.KERNEL_SZ, self.KERNEL_SZ)), plt.get_cmap('gray'))
-        ax[2].imshow(np.resize(origMask.cpu(), (self.KERNEL_SZ, self.KERNEL_SZ)), alpha = 0.5)
+
+        origImage = np.resize(origImage.cpu(), (self.kernel_sz, self.kernel_sz))
+        predMask = np.resize(predMask.cpu(), (self.kernel_sz, self.kernel_sz))
+        origMask = np.resize(origMask.cpu(), (self.kernel_sz, self.kernel_sz))
+
+        ax[0].imshow(origImage, plt.get_cmap('gray'))
+        ax[1].imshow(origImage, plt.get_cmap('gray'))
+        ax[1].imshow(predMask, alpha = 0.5)
+        ax[2].imshow(origImage, plt.get_cmap('gray'))
+        ax[2].imshow(origMask, alpha = 0.5)
         
         ax[0].set_title(f"{sub_names}", fontsize = 8, fontweight = 'bold')
         ax[1].set_title(f"Dice: LV - {self.dice_lv} || MYO - {self.dice_myo} || FIB - {self.dice_fib} || Prec - {self.precision} || Rec - {self.recall}", fontsize = 8, fontweight='bold')
@@ -85,21 +95,30 @@ test_ds_names = test_ds[2]
 # valid_ds_mask = valid_ds[1]
 # valid_ds_names = valid_ds[2]
 
-# valid_set = MyDataset(meta.NUM_LAYERS, valid_ds_origin, valid_ds_mask, valid_ds_names, meta.KERNEL_SZ, target_transform,
+# valid_set = MyDataset(meta.NUM_LAYERS, valid_ds_origin, valid_ds_mask, valid_ds_names, meta.KERNEL, target_transform,
 #                       target_transform)
 # valid_batch_size = len(valid_set)
 # valid_loader = DataLoader(valid_set, valid_batch_size, drop_last=True, shuffle=True, pin_memory=False)
 
-test_set = MyDataset(meta.NUM_LAYERS, test_ds_origin, test_ds_mask, test_ds_names, meta.KERNEL_SZ, target_transform, target_transform)
+
+if meta.CROPPING is False:
+    unet = torch.load(f'{meta.PROJ_NAME}/{meta.MODEL_NAME}.pth').to(device=device)
+    kernel_sz = meta.KERNEL
+
+elif meta.CROPPING is True:
+    unet = torch.load(f'{meta.CROPP_PROJ_NAME}/{meta.MODEL_NAME}.pth').to(device=device)
+    kernel_sz = meta.CROPP_KERNEL 
+
+test_set = MyDataset(meta.NUM_LAYERS, test_ds_origin, test_ds_mask, test_ds_names, kernel_sz, target_transform, target_transform)
 test_batch_size = len(test_set)
 test_loader = DataLoader(test_set, test_batch_size, drop_last=True, shuffle=False, pin_memory=True)
 
-unet = torch.load(f'{meta.PROJECT_NAME}/{meta.MODEL_NAME}.pth').to(device=device)
-predicted_masks = prediction_masks(unet, device, test_loader)
+
+predicted_masks = prediction_masks(unet, test_loader)
 
 
 #############################
-def bland_altman_per_subject(test_list, meta):
+def bland_altman_per_subject(unet, test_list, meta, kernel_sz):
     
     GT_myo, CM_myo, GT_fib, CM_fib, MYO_VAL, FIB_VAL = [], [], [], [], [], []
 
@@ -109,12 +128,11 @@ def bland_altman_per_subject(test_list, meta):
         test_ds_mask = test_ds[1]
         test_ds_names = test_ds[2]
 
-        test_set = MyDataset(meta.NUM_LAYERS, test_ds_origin, test_ds_mask, test_ds_names, meta.KERNEL_SZ, target_transform, target_transform)
+        test_set = MyDataset(meta.NUM_LAYERS, test_ds_origin, test_ds_mask, test_ds_names, kernel_sz, target_transform, target_transform)
         test_batch_size = len(test_set)
         test_loader = DataLoader(test_set, test_batch_size, drop_last=True, shuffle=False, pin_memory=True)
 
-        unet = torch.load(f'{meta.PROJECT_NAME}/{meta.MODEL_NAME}.pth').to(device=device)
-        predicted_masks = prediction_masks(unet, device, test_loader)
+        predicted_masks = prediction_masks(unet, test_loader)
 
         metrics = bland_altman(predicted_masks)
 
@@ -128,17 +146,14 @@ def bland_altman_per_subject(test_list, meta):
     return GT_myo, CM_myo, GT_fib, CM_fib, MYO_VAL, FIB_VAL
 
 
-# GT_myo = bland_altman_per_subject(test_list, meta)[0]
-# CM_myo = bland_altman_per_subject(test_list, meta)[1]
+GT_myo = bland_altman_per_subject(unet, test_list, meta, kernel_sz)[0]
+CM_myo = bland_altman_per_subject(unet, test_list, meta, kernel_sz)[1]
 
-# GT_fib = bland_altman_per_subject(test_list, meta)[2]
-# CM_fib = bland_altman_per_subject(test_list, meta)[3]
+GT_fib = bland_altman_per_subject(unet, test_list, meta, kernel_sz)[2]
+CM_fib = bland_altman_per_subject(unet, test_list, meta, kernel_sz)[3]
 
-# MYO_VAL = bland_altman_per_subject(test_list, meta)[4]
-# FIB_VAL = bland_altman_per_subject(test_list, meta)[5]
-
-
-
+MYO_VAL = bland_altman_per_subject(unet, test_list, meta, kernel_sz)[4]
+FIB_VAL = bland_altman_per_subject(unet, test_list, meta, kernel_sz)[5]
 
 
 

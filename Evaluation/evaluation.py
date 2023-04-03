@@ -172,27 +172,19 @@ class NiftiSaver(MetaParameters):
         
         zero_matrix = np.zeros((row_img, column_img))
 
+        ## After prediction of the resized and rescaled image
         if def_cord is None:
             row_msk, column_msk = mask.shape
             max_kernel = max(row_img, column_img)
             mask = rescale(mask, (max_kernel/mask.shape[0], max_kernel/mask.shape[1]), anti_aliasing = False, order=0)            
             zero_matrix = mask[: row_img, : column_img]
-            # zero_matrix = resize(mask, (row_img, column_img), anti_aliasing = False, order=0)
+
+        ## After prediction of cropped and rescaled image
         elif def_cord is not None:
-            print(def_cord)
-        # ##  восстанавливаем размеры матрицы кропнутой до PRESEG_KERNEL на PRESEG_KERNEL по координатам центра 
-            
-            print('maasage 1')
-            X = (def_cord[0] - self.PRESEG_KERNEL // 2)    ## 76 - 32 = 44
-            Y = (def_cord[1] - self.PRESEG_KERNEL // 2)    ## 105 - 32 = 73
-            print('maasage 2')
+            X = (def_cord[0] - self.CROPP_KERNEL // 2)
+            Y = (def_cord[1] - self.CROPP_KERNEL // 2)
+            zero_matrix[X: X + self.CROPP_KERNEL, Y: Y + self.CROPP_KERNEL] = mask
 
-            print(X, Y)
-            zero_matrix[X: X + self.PRESEG_KERNEL, Y: Y + self.PRESEG_KERNEL] = mask
-            print(zero_matrix.shape)
-            print('maasage 3')
-
-        
         return zero_matrix
 
     def save_predictions(self, Net, file_name, kernel_sz, images, image_shp, fov_size, def_cord, evaluate_directory):
@@ -205,16 +197,8 @@ class NiftiSaver(MetaParameters):
             predict = np.array(predict, dtype = np.float32)
             
             if def_cord is not None:
-                print(def_cord)
-                print('maasage 4')
-
                 predict = self.expand_matrix(predict, image_shp[0], image_shp[1], def_cord)
-                print('maasage 5')
-                
-                print(image_shp, fov_size)
             else:
-                print('maasage 6')
-
                 predict = self.expand_matrix(predict, image_shp[0], image_shp[1], None)
 
             predict = resize(predict, (image_shp[0], image_shp[1]), anti_aliasing_sigma = False)
@@ -304,8 +288,7 @@ class EvalPreprocessData(MetaParameters):
         center_column = (mean_left + mean_right) // 2 
 
         ## TODO: подумать о обрезке не квадратной а по контуру ровно...
-        max_kernel = max((mean_bot - mean_top), (mean_right - mean_left))
-
+        # max_kernel = max((mean_bot - mean_top), (mean_right - mean_left))
         # gap = max_kernel // 2 + round(0.05 * base_kernel)
         gap = 32
 

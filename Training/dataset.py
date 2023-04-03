@@ -47,7 +47,7 @@ class GetData(MetaParameters):
 
 
                 ## Move this part into the MyDataset.preprocessing/normalization method 
-                if self.PRESEGMENTATION is True:
+                if self.CROPPING is True:
                     preseg = EvalPreprocessData(images, masks).presegmentation_tissues()
                     images = preseg[0]
                     masks = preseg[1] 
@@ -56,19 +56,22 @@ class GetData(MetaParameters):
                     image = images[:, :, slc]
                     mask = masks[:, :, slc]
                     
-                    # if (mask!=4).any() or (mask!=0).any() or slc < 9:
+                    # if (mask==4).any() or slc > 9:
                     if (mask==4).any():
                         print(f"Subject {sub_name} slice {slc} was passed")
                         pass
                     else:
-                        normalized = PreprocessData(image, mask).preprocessing(self.KERNEL_SZ)
+                        if self.CROPPING is True:
+                            normalized = PreprocessData(image, mask).preprocessing(self.CROPP_KERNEL)
+                        elif self.CROPPING is False:
+                            normalized = PreprocessData(image, mask).preprocessing(self.KERNEL)
                         
                         list_images.append(normalized[0])
                         list_masks.append(normalized[1])
 
                         list_names.append(f'{sub_name} Slice {images.shape[2] - slc}')
                     
-        # print(f'Count of slice in dataset: {len(list_names)}')
+        print(f'Count of slice in dataset: {len(list_names)}')
         try:
             shuff = shuff_dataset(list_images, list_masks, list_names)
         except:

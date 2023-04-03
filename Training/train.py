@@ -10,15 +10,19 @@ ds = DiceLoss()
 
 class TrainNetwork(MetaParameters):
 
-    def __init__(self, device, model, optimizer, loss_function, train_loader, valid_loader, meta, ds):         
+    def __init__(self, model, optimizer, loss_function, train_loader, valid_loader, meta, ds):         
         super(MetaParameters, self).__init__()
         self.ds = ds 
-        self.device = device
         self.model = model
         self.optimizer = optimizer
         self.loss_function = loss_function
         self.train_loader = train_loader
         self.valid_loader = valid_loader
+
+        if self.CROPPING is False:
+            self.project_name = self.PROJ_NAME
+        elif self.CROPPING is True:
+            self.project_name = self.CROPP_PROJ_NAME
     
     def get_metrics(self, loader_):
         
@@ -30,7 +34,7 @@ class TrainNetwork(MetaParameters):
         with torch.no_grad():
             
             for inputs, labels, sub_names in loader_:
-                inputs, labels, sub_names = inputs.to(self.device), labels.to(self.device), list(sub_names)   
+                inputs, labels, sub_names = inputs.to(device), labels.to(evice), list(sub_names)   
 
                 predict = self.model(inputs)
                 
@@ -70,7 +74,7 @@ class TrainNetwork(MetaParameters):
             self.model.train()
             
             for inputs, labels, sub_names in self.train_loader:
-                inputs, labels, sub_names = inputs.to(self.device), labels.to(self.device), list(sub_names)   
+                inputs, labels, sub_names = inputs.to(device), labels.to(device), list(sub_names)   
           
                 predict = torch.softmax(self.model(inputs), dim=1)
                 train_loss = loss_function(predict, labels)
@@ -92,14 +96,14 @@ class TrainNetwork(MetaParameters):
 
             log_stats(
                 f'./Results/{self.FOLD}/{epoch},{train_loss.item()},{training[1]},{training[2]},{training[3]},{training[4]},{validating[0]},{validating[1]},{validating[2]},{validating[3]},{validating[4]}', 
-                self.PROJECT_NAME
+                self.project_name
             )
 
             # results = 'Train LOSS: {:.3f}; Valid LOSS: {:.3f};'.format(training[0], validating[0])
 
             # log_stats(
             #     f'./Results/{self.FOLD}/{epoch},{train_loss.item()},{training[1]},{training[2]},{training[3]},{training[4]},{validating[0]},{validating[1]},{validating[2]},{validating[3]},{validating[4]}', 
-            #     self.PROJECT_NAME
+            #     self.project_name
             # )
 
             if validating[0] > the_last_loss:
@@ -115,8 +119,8 @@ class TrainNetwork(MetaParameters):
 
             if validating[0] <= the_last_loss:
                 the_last_loss = validating[0]
-                torch.save(self.model, f'{self.PROJECT_NAME}/model_best.pth')
-                print(f'{self.PROJECT_NAME}/model_best - {epoch} saved!')
+                torch.save(self.model, f'{self.project_name}/model_best.pth')
+                print(f'{self.project_name}/model_best - {epoch} saved!')
 
             print(results)
             time_end_epoch = time.time()

@@ -43,10 +43,7 @@ print(f'numpy version: {np.__version__}')
 print(f'pandas version: {pd.__version__}')
 
 
-# from torchsummary import summary
-# device = 'cpu'
-# model = UNet_2D_AttantionLayer().to(device)
-# summary(model,input_size=(1,256,256))
+global device
 
 
 def device():
@@ -69,20 +66,22 @@ print(device)
 ########################################################################################################################
 meta = MetaParameters()
 
-create_dir_log(meta.PROJECT_NAME)
+create_dir_log(meta.PROJ_NAME)
+create_dir_log(meta.CROPP_PROJ_NAME)
 
-try:
+
+# try:
     # model = torch.hub.load('pytorch/vision:v0.10.0', 'fcn_resnet50', pretrained=True)
     # model = torch.hub.load('pytorch/vision:v0.10.0', 'fcn_resnet101', pretrained=True)
-    model = torch.load(f'{meta.PROJECT_NAME}/{meta.MODEL_NAME}.pth').to(device=device)
-    model.eval()
+    # model = torch.load(f'{meta.PROJ_NAME}/{meta.MODEL_NAME}.pth').to(device=device)
+    # model.eval()
     # print(f'model loaded: {model}')
-    print(f'model loaded: {meta.PROJECT_NAME}/{meta.MODEL_NAME}.pth')
-except:
-    print('no trained models')
+    # print(f'model loaded: {meta.PROJ_NAME}/{meta.MODEL_NAME}.pth')
+# except:
+    # print('no trained models')
     # model = UNet_2D_mini(drop = dropout, init_features = init_features).to(device)
     # model = UNet_2D().to(device)
-    model = UNet_2D_AttantionLayer().to(device)
+model = UNet_2D_AttantionLayer().to(device)
     # model = SegNet().to(device)
     # model = U_Net().to(device)
     # model = FCT().to(device)
@@ -105,15 +104,21 @@ scheduler_gen = torch.optim.lr_scheduler.CosineAnnealingLR(
 ########################################################################################################################
 target_transform = transforms.Compose([
     transforms.ToPILImage(),
-    # transforms.Resize((meta.KERNEL_SZ, meta.KERNEL_SZ)),
+    # transforms.Resize((meta.KERNEL, meta.KERNEL)),
     transforms.ToTensor(),
 ])
 transform = transforms.Compose([
     transforms.ToPILImage(),
-    # transforms.Resize((meta.KERNEL_SZ, meta.KERNEL_SZ)),
+    # transforms.Resize((meta.KERNEL, meta.KERNEL)),
     transforms.RandomRotation((-15, 15)),
     transforms.RandomHorizontalFlip(0.5),
     transforms.RandomVerticalFlip(0.5),
     transforms.ToTensor(),
 ])
+
+
+# from torchsummary import summary
+# device = 'cpu'
+# model = UNet_2D_AttantionLayer().to(device)
+# summary(model,input_size=(1,256,256))
 

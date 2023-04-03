@@ -240,7 +240,7 @@ class PreprocessData(MetaParameters):
         shp = matrix.shape
         max_kernel = max(matrix.shape[0], matrix.shape[1])
         scale =  kernel_sz / max_kernel
-        # print(f"Start rescaling from {shp} to {self.KERNEL_SZ, self.KERNEL_SZ}")        
+        # print(f"Start rescaling from {shp} to {self.KERNEL, self.KERNEL}")        
 
         return rescale(matrix, (scale, scale), anti_aliasing = False, order=order)
 
