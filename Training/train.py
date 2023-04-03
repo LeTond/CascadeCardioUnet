@@ -21,9 +21,11 @@ class TrainNetwork(MetaParameters):
 
         if self.CROPPING is False:
             self.project_name = self.PROJ_NAME
+            self.fold = self.FOLD
         elif self.CROPPING is True:
             self.project_name = self.CROPP_PROJ_NAME
-    
+            self.fold = self.CROPP_FOLD
+
     def get_metrics(self, loader_):
         
         self.model.eval()
@@ -34,7 +36,7 @@ class TrainNetwork(MetaParameters):
         with torch.no_grad():
             
             for inputs, labels, sub_names in loader_:
-                inputs, labels, sub_names = inputs.to(device), labels.to(evice), list(sub_names)   
+                inputs, labels, sub_names = inputs.to(device), labels.to(device), list(sub_names)   
 
                 predict = self.model(inputs)
                 
@@ -95,7 +97,7 @@ class TrainNetwork(MetaParameters):
             )
 
             log_stats(
-                f'./Results/{self.FOLD}/{epoch},{train_loss.item()},{training[1]},{training[2]},{training[3]},{training[4]},{validating[0]},{validating[1]},{validating[2]},{validating[3]},{validating[4]}', 
+                f'./Results/{self.fold}/{epoch},{train_loss.item()},{training[1]},{training[2]},{training[3]},{training[4]},{validating[0]},{validating[1]},{validating[2]},{validating[3]},{validating[4]}', 
                 self.project_name
             )
 

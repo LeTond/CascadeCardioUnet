@@ -80,8 +80,8 @@ def bland_altman(predicted_masks):
     GT_fib, CM_fib = [], []
     GT_myo, CM_myo = [], []
 
-    lv_volume, myo_volume, fib_volume = 0, 0, 0
-    True_lv_volume, True_myo_volume, True_fib_volume = 0, 0, 0
+    lv_vol, myo_vol, fib_vol = 0, 0, 0
+    True_lv_vol, True_myo_vol, True_fib_vol = 0, 0, 0
 
     for i in range(predicted_masks[0][0]):
 
@@ -91,26 +91,26 @@ def bland_altman(predicted_masks):
         GT_fib.append(volumes(predicted_masks[5][i], predicted_masks[6][i], predicted_masks[4][i], predicted_masks[3][i])[2])
         CM_fib.append(volumes(predicted_masks[5][i], predicted_masks[6][i], predicted_masks[4][i], predicted_masks[3][i])[3])
 
-        lv_volume += predicted_masks[1][i].numpy().sum()
-        myo_volume += predicted_masks[3][i].numpy().sum()
-        fib_volume += predicted_masks[5][i].numpy().sum()
+        lv_vol += predicted_masks[1][i].numpy().sum()
+        myo_vol += predicted_masks[3][i].numpy().sum()
+        fib_vol += predicted_masks[5][i].numpy().sum()
 
-        True_lv_volume += predicted_masks[2][i].numpy().sum()
-        True_myo_volume += predicted_masks[4][i].numpy().sum()
-        True_fib_volume += predicted_masks[6][i].numpy().sum()                
+        True_lv_vol += predicted_masks[2][i].numpy().sum()
+        True_myo_vol += predicted_masks[4][i].numpy().sum()
+        True_fib_vol += predicted_masks[6][i].numpy().sum()                
         
     size = predicted_masks[0][0]
 
-    mean_True_lv_volume = round(True_lv_volume / size * 4)
-    mean_True_myo_volume = round(True_myo_volume / size * 4)
-    mean_True_fib_volume = round(True_fib_volume / size * 4)
+    mean_True_lv_vol = round(True_lv_vol / size * 4)
+    mean_True_myo_vol = round(True_myo_vol / size * 4)
+    mean_True_fib_vol = round(True_fib_vol / size * 4)
 
-    mean_lv_volume = round(lv_volume / size * 4)
-    mean_myo_volume = round(myo_volume / size * 4)
-    mean_fib_volume = round(fib_volume / size * 4)
+    mean_lv_vol = round(lv_vol / size * 4)
+    mean_myo_vol = round(myo_vol / size * 4)
+    mean_fib_vol = round(fib_vol / size * 4)
 
-    # print(f'Mean Pred LV Volume: {mean_lv_volume}, Mean Pred MYO Volume: {mean_myo_volume}, Mean Pred FIB Volume: {mean_fib_volume}')
-    # print(f'Mean True LV Volume: {mean_True_lv_volume}, Mean True MYO Volume: {mean_True_myo_volume}, Mean True FIB Volume: {mean_True_fib_volume}')
+    # print(f'Mean Pred LV Volume: {mean_lv_vol}, Mean Pred MYO Volume: {mean_myo_vol}, Mean Pred FIB Volume: {mean_fib_vol}')
+    # print(f'Mean True LV Volume: {mean_True_lv_vol}, Mean True MYO Volume: {mean_True_myo_vol}, Mean True FIB Volume: {mean_True_fib_vol}')
 
     mean_GT_myo = np.mean(GT_myo)
     mean_CM_myo = np.mean(CM_myo)
@@ -118,7 +118,7 @@ def bland_altman(predicted_masks):
     mean_GT_fib = np.mean(GT_fib)
     mean_CM_fib = np.mean(CM_fib)
 
-    return mean_GT_myo, mean_CM_myo, mean_GT_fib, mean_CM_fib, mean_myo_volume, mean_fib_volume
+    return mean_GT_myo, mean_CM_myo, mean_GT_fib, mean_CM_fib, mean_True_myo_vol, mean_myo_vol, mean_True_fib_vol, mean_fib_vol
 
 
 def create_hist(value_list: list):
@@ -203,6 +203,30 @@ def prediction_masks(Net, loader_):
             shp = predict.shape
 
     return shp, pred_lv, labe_lv, pred_myo, labe_myo, pred_fib, labe_fib, sub_names, inputs, labels, predict
+
+
+class MaskPrediction():
+    def prediction_masks(self, Net, loader_):
+        size = len(loader_.dataset)
+        Net.eval()
+        with torch.no_grad():
+            for inputs, labels, sub_names in loader_:
+                inputs, labels, sub_names = inputs.to(device), labels.to(device), list(sub_names)   
+                predict = torch.softmax(Net(inputs), dim = 1)
+                self.predict = torch.argmax(predict, dim = 1)
+                self.labels = torch.argmax(labels, dim = 1)
+                
+        self.pred_lv = (self.predict == 1).cpu()
+        self.labe_lv = (self.labels == 1).cpu()
+        self.pred_myo = (self.predict == 2).cpu()
+        self.labe_myo = (self.labels == 2).cpu()
+        self.pred_fib = (self.predict == 3).cpu()
+        self.labe_fib = (self.labels == 3).cpu()
+
+        self.shp = predict.shape
+
+        # return shp, pred_lv, labe_lv, pred_myo, labe_myo, pred_fib, labe_fib, sub_names, inputs, labels, predict
+
 
 
 def get_orig_slice(sub_name):

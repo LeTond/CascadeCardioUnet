@@ -120,7 +120,7 @@ predicted_masks = prediction_masks(unet, test_loader)
 #############################
 def bland_altman_per_subject(unet, test_list, meta, kernel_sz):
     
-    GT_myo, CM_myo, GT_fib, CM_fib, MYO_VAL, FIB_VAL = [], [], [], [], [], []
+    GT_myo, CM_myo, GT_fib, CM_fib, true_Myo_vol, Myo_vol, true_Fib_vol, Fib_vol = [], [], [], [], [], [], [], []
 
     for subj in test_list:
         test_ds = GetData([subj]).generated_data_list()
@@ -133,27 +133,21 @@ def bland_altman_per_subject(unet, test_list, meta, kernel_sz):
         test_loader = DataLoader(test_set, test_batch_size, drop_last=True, shuffle=False, pin_memory=True)
 
         predicted_masks = prediction_masks(unet, test_loader)
-
         metrics = bland_altman(predicted_masks)
 
         GT_myo.append(metrics[0])
         CM_myo.append(metrics[1])
         GT_fib.append(metrics[2])
         CM_fib.append(metrics[3])
-        MYO_VAL.append(metrics[4])
-        FIB_VAL.append(metrics[5])
+        true_Myo_vol.append(metrics[4])
+        Myo_vol.append(metrics[5])
+        true_Fib_vol.append(metrics[6])
+        Fib_vol.append(metrics[7])
 
-    return GT_myo, CM_myo, GT_fib, CM_fib, MYO_VAL, FIB_VAL
+    return GT_myo, CM_myo, GT_fib, CM_fib, true_Myo_vol, Myo_vol, true_Fib_vol, Fib_vol
 
 
-GT_myo = bland_altman_per_subject(unet, test_list, meta, kernel_sz)[0]
-CM_myo = bland_altman_per_subject(unet, test_list, meta, kernel_sz)[1]
-
-GT_fib = bland_altman_per_subject(unet, test_list, meta, kernel_sz)[2]
-CM_fib = bland_altman_per_subject(unet, test_list, meta, kernel_sz)[3]
-
-MYO_VAL = bland_altman_per_subject(unet, test_list, meta, kernel_sz)[4]
-FIB_VAL = bland_altman_per_subject(unet, test_list, meta, kernel_sz)[5]
+GT_myo, CM_myo, GT_fib, CM_fib, true_Myo_vol, Myo_vol, true_Fib_vol, Fib_vol = bland_altman_per_subject(unet, test_list, meta, kernel_sz)
 
 
 
