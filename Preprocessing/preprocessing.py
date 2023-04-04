@@ -212,7 +212,9 @@ class PreprocessData(MetaParameters):
         return image, mask
 
     def clipping(self, image):
+        
         image_max = np.max(image)
+
         if self.CLIP_RATE is not None:
             image = np.clip(image, self.CLIP_RATE[0] * image_max, self.CLIP_RATE[1] * image_max)
 

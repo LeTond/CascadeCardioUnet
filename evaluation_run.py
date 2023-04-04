@@ -25,7 +25,7 @@ class Evaluation(MetaParameters):
 
         neural_model = torch.load(f'{self.project_name}/{self.MODEL_NAME}.pth').to(device=device)
         images, image_shp, fov_size, def_cord = GetListImages(file_name, self.eval_dir, self.dataset_path, preseg = False).array_list(self.KERNEL)
-        # pdf_predictions(neural_model, file_name, self.KERNEL, images, image_shp, fov_size, self.eval_dir)
+        pdf_predictions(neural_model, file_name, self.KERNEL, images, image_shp, fov_size, self.eval_dir)
         NiftiSaver().save_predictions(neural_model, file_name, self.KERNEL, images, image_shp, fov_size, def_cord, self.eval_dir)
 
     def preseg_evaluation(self, file_name):

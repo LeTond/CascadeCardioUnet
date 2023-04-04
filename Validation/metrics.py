@@ -98,25 +98,20 @@ def bland_altman(predicted_masks):
         True_lv_vol += predicted_masks[2][i].numpy().sum()
         True_myo_vol += predicted_masks[4][i].numpy().sum()
         True_fib_vol += predicted_masks[6][i].numpy().sum()                
-        
-    size = predicted_masks[0][0]
 
-    mean_True_lv_vol = round(True_lv_vol / size * 4)
-    mean_True_myo_vol = round(True_myo_vol / size * 4)
-    mean_True_fib_vol = round(True_fib_vol / size * 4)
+    mean_True_lv_vol = round(True_lv_vol / 1000 * 32)
+    mean_True_myo_vol = round(True_myo_vol / 1000 * 32)
+    mean_True_fib_vol = round(True_fib_vol / 1000 * 32)
 
-    mean_lv_vol = round(lv_vol / size * 4)
-    mean_myo_vol = round(myo_vol / size * 4)
-    mean_fib_vol = round(fib_vol / size * 4)
+    mean_lv_vol = round(lv_vol / 1000 * 32)
+    mean_myo_vol = round(myo_vol / 1000 * 32)
+    mean_fib_vol = round(fib_vol / 1000 * 32)
 
-    # print(f'Mean Pred LV Volume: {mean_lv_vol}, Mean Pred MYO Volume: {mean_myo_vol}, Mean Pred FIB Volume: {mean_fib_vol}')
-    # print(f'Mean True LV Volume: {mean_True_lv_vol}, Mean True MYO Volume: {mean_True_myo_vol}, Mean True FIB Volume: {mean_True_fib_vol}')
+    mean_GT_myo = np.sum(GT_myo) * 32 / 1000
+    mean_CM_myo = np.sum(CM_myo) * 32 / 1000
 
-    mean_GT_myo = np.mean(GT_myo)
-    mean_CM_myo = np.mean(CM_myo)
-    
-    mean_GT_fib = np.mean(GT_fib)
-    mean_CM_fib = np.mean(CM_fib)
+    mean_GT_fib = np.sum(GT_fib) * 32 / 1000
+    mean_CM_fib = np.sum(CM_fib) * 32 / 1000
 
     return mean_GT_myo, mean_CM_myo, mean_GT_fib, mean_CM_fib, mean_True_myo_vol, mean_myo_vol, mean_True_fib_vol, mean_fib_vol
 
@@ -155,20 +150,20 @@ def image_parameters(predicted_masks):
         all_values_fib.append(ds(predicted_masks[5][i], predicted_masks[6][i]))
 
         fib_metrics = TissueContrast().metrics(predicted_masks[6][i], predicted_masks[5][i], 'FIB')
+        myo_metrics = TissueContrast().metrics(predicted_masks[4][i], predicted_masks[3][i], 'MYO')
+        lv_metrics = TissueContrast().metrics(predicted_masks[2][i], predicted_masks[1][i], 'LV')
+
         precision += fib_metrics[0]
         recall += fib_metrics[1]
         accur += fib_metrics[2]
 
-        fib_matrix = predicted_masks[9][i].cpu()
-        orig_matrix = predicted_masks[8][i].cpu()
+        # precision += myo_metrics[0]
+        # recall += myo_metrics[1]
+        # accur += myo_metrics[2]
 
-        fib_matrix[fib_matrix != 3] = 0
-        fib_matrix[fib_matrix == 3] = 1
-
-        orig_matrix = orig_matrix * fib_matrix
-        summ_fib_matrix = fib_matrix[fib_matrix == 1].numpy().sum()
-        summ_orig_matrix = orig_matrix.numpy().sum()
-        mean_contrast_value = round(float(summ_orig_matrix  * 4095 / (summ_fib_matrix + 1e-5)), 2)
+        # precision += lv_metrics[0]
+        # recall += lv_metrics[1]
+        # accur += lv_metrics[2]
 
     size = predicted_masks[0][0]
     
@@ -206,6 +201,7 @@ def prediction_masks(Net, loader_):
 
 
 class MaskPrediction():
+
     def prediction_masks(self, Net, loader_):
         size = len(loader_.dataset)
         Net.eval()
@@ -228,7 +224,6 @@ class MaskPrediction():
         # return shp, pred_lv, labe_lv, pred_myo, labe_myo, pred_fib, labe_fib, sub_names, inputs, labels, predict
 
 
-
 def get_orig_slice(sub_name):
 
     sub_name_list = sub_name.split(' ')
@@ -241,10 +236,9 @@ class TissueContrast(MetaParameters):
     def __init__(self):         
         super(MetaParameters, self).__init__()
 
-    def define_image_contrast(self, predicted_masks):
+    def image_contrast(self, predicted_masks):
 
         smooth = 1e-5
-
         for i in range(predicted_masks[0][0]):
 
             fib_matrix = predicted_masks[5][i]
@@ -300,13 +294,13 @@ class TissueContrast(MetaParameters):
             # if mean_contrast_lv < 10:
                 # pass 
             # else:
-            diff_contrast = round((mean_contrast_fib + smooth) / (mean_contrast_lv + smooth) * 100, 2)
+            # diff_contrast = round((mean_contrast_fib + smooth) / (mean_contrast_lv + smooth) * 100, 2)
 
             # output_massage = f"{predicted_masks[7][i]} || Lab_FIB: {summ_fib_matrix} || Pred_FIB: {predicted_masks[5][i].numpy().sum()} || MeanValLV: {mean_contrast_lv} || MeanValFib: {mean_contrast_fib} || MeanValMyo: {mean_contrast_myo} || DiffVal: {diff_contrast} || DiceFib: {metric_dice}"
             # output_massage = f"{predicted_masks[7][i]} || DiffVal: {diff_contrast} || DiceFib: {metric_dice}"        
             
-            output_massage = f"{predicted_masks[7][i]} || DiffVal: {diff_contrast} || {summ_fib_matrix} || DiceFib: {metric_dice}"
-            print(output_massage)
+            # output_massage = f"{predicted_masks[7][i]} || DiffVal: {diff_contrast} || {summ_fib_matrix} || DiceFib: {metric_dice}"
+            # print(output_massage)
             # print(f'{predicted_masks[7][i]} || label_pixels_myo: {summ_myo_matrix} || pred_pixels_myo: {predicted_masks[3][i].numpy().sum()} || Mean value MYO: {mean_contrast_myo}')
 
     def metrics(self, label, prediction, metric_name):
@@ -325,6 +319,25 @@ class TissueContrast(MetaParameters):
 
         return precision, recall, accuracy, dice 
 
+    def precision_recall_accuracy(self):
+
+        fib_metrics = self.metrics(predicted_masks[6][i], predicted_masks[5][i], 'FIB')
+        myo_metrics = self.metrics(predicted_masks[4][i], predicted_masks[3][i], 'MYO')
+        lv_metrics = self.metrics(predicted_masks[2][i], predicted_masks[1][i], 'LV')
+
+        precision += fib_metrics[0]
+        recall += fib_metrics[1]
+        accur += fib_metrics[2]
+
+        # precision += myo_metrics[0]
+        # recall += myo_metrics[1]
+        # accur += myo_metrics[2]
+
+        # precision += lv_metrics[0]
+        # recall += lv_metrics[1]
+        # accur += lv_metrics[2]
+
+        return precision, recall, accuracy
 
 
 
