@@ -1,4 +1,4 @@
-# from Preprocessing.preprocessing import *
+from Preprocessing.preprocessing import *
 from parameters import meta
 # from configuration import *
 # from parameters import MetaParameters
@@ -27,16 +27,16 @@ if meta.DATASET_NAME != "ALMAZ":
     valid_list_01 = train_list[round(0.8*train_dataset_size):]
     train_list_01 = list(set(train_list)-set(valid_list_01))
 
-    valid_list_02 = train_list[round(0.6*length_list):round(0.8*length_list)]
+    valid_list_02 = train_list[round(0.6*train_dataset_size):round(0.8*train_dataset_size)]
     train_list_02 = list(set(train_list)-set(valid_list_02))
 
-    valid_list_03 = train_list[round(0.4*length_list):round(0.6*length_list)]
+    valid_list_03 = train_list[round(0.4*train_dataset_size):round(0.6*train_dataset_size)]
     train_list_03 = list(set(train_list)-set(valid_list_03))
 
-    valid_list_04 = train_list[round(0.2*length_list):round(0.4*length_list)]
+    valid_list_04 = train_list[round(0.2*train_dataset_size):round(0.4*train_dataset_size)]
     train_list_04 = list(set(train_list)-set(valid_list_04))
 
-    valid_list_05 = train_list[:round(0.2*length_list)]
+    valid_list_05 = train_list[:round(0.2*train_dataset_size)]
     train_list_05 = list(set(train_list)-set(valid_list_05))
 
 else:
