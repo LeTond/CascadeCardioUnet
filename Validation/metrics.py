@@ -51,44 +51,27 @@ def create_hist(value_list: list):
     plt.title("Distribution of dice")
 
 
-def prediction_masks(Net, loader_):
-    size = len(loader_.dataset)
-    
-    Net.eval()
-    
-    with torch.no_grad():
-        
-        for inputs, labels, sub_names in loader_:
-            inputs, labels, sub_names = inputs.to(device), labels.to(device), list(sub_names)   
-
-            predict = torch.softmax(Net(inputs), dim = 1)
-            predict = torch.argmax(predict, dim = 1)
-            labels = torch.argmax(labels, dim = 1)
-            
-            pred_lv = (predict == 1).cpu()
-            labe_lv = (labels == 1).cpu()
-            pred_myo = (predict == 2).cpu()
-            labe_myo = (labels == 2).cpu()
-            pred_fib = (predict == 3).cpu()
-            labe_fib = (labels == 3).cpu()
-
-            shp = predict.shape
-
-    return shp, pred_lv, labe_lv, pred_myo, labe_myo, pred_fib, labe_fib, sub_names, inputs, labels, predict
-
-
 class MaskPrediction():
 
-    def prediction_masks(self, Net, loader_):
-        size = len(loader_.dataset)
-        Net.eval()
+    # def __init__(model_net, dataset_)
+    # self.model_net = model_net
+    # self.dataset_ = dataset_
+
+    def prediction_masks(self, model_net, dataset_):
+        
+        size = len(dataset_.dataset)
+        model_net.eval()
+        
         with torch.no_grad():
-            for inputs, labels, sub_names in loader_:
+
+            for inputs, labels, sub_names in dataset_:
+                
                 inputs, labels, sub_names = inputs.to(device), labels.to(device), list(sub_names)   
-                predict = torch.softmax(Net(inputs), dim = 1)
+                
+                predict = torch.softmax(model_net(inputs), dim = 1)
                 predict = torch.argmax(predict, dim = 1)
                 labels = torch.argmax(labels, dim = 1)
-                
+
             pred_lv = (predict == 1).cpu()
             labe_lv = (labels == 1).cpu()
             pred_myo = (predict == 2).cpu()
@@ -101,89 +84,38 @@ class MaskPrediction():
         return shp, pred_lv, labe_lv, pred_myo, labe_myo, pred_fib, labe_fib, sub_names, inputs, labels, predict
 
 
-def volumes(labe_fib, pred_fib, labe_myo, pred_myo):
-    smooth = 0.0001
-
-    GT_fib = labe_fib.sum().item()
-    CM_fib = pred_fib.sum().item()
-    GT_myo = labe_myo.sum().item()
-    CM_myo = pred_myo.sum().item()
-
-    Vgt = round(float((GT_fib + smooth) / (GT_myo + GT_fib + smooth) * 100), 2)
-    Vcm = round(float((CM_fib + smooth) / (CM_myo + CM_fib + smooth) * 100), 2)
-    
-    # print(GT_fib)
-
-    # return Vgt, Vcm
-    return GT_myo, CM_myo, GT_fib, CM_fib
-
-
-def bland_altman(predicted_masks):
-    GT_fib, CM_fib = [], []
-    GT_myo, CM_myo = [], []
-
-    lv_vol, myo_vol, fib_vol = 0, 0, 0
-    True_lv_vol, True_myo_vol, True_fib_vol = 0, 0, 0
-
-    for i in range(predicted_masks[0][0]):
-
-        fib_myo_volumes = volumes(predicted_masks[5][i], predicted_masks[6][i], predicted_masks[4][i], predicted_masks[3][i])
-
-        GT_myo.append(fib_myo_volumes[0])
-        CM_myo.append(fib_myo_volumes[1])
-        GT_fib.append(fib_myo_volumes[2])
-        CM_fib.append(fib_myo_volumes[3])
-
-        lv_vol += predicted_masks[1][i].numpy().sum()
-        myo_vol += predicted_masks[3][i].numpy().sum()
-        fib_vol += predicted_masks[5][i].numpy().sum()
-
-        True_lv_vol += predicted_masks[2][i].numpy().sum()
-        True_myo_vol += predicted_masks[4][i].numpy().sum()
-        True_fib_vol += predicted_masks[6][i].numpy().sum()                
-
-    mean_True_lv_vol = round(True_lv_vol / 1000 * 32)
-    mean_True_myo_vol = round(True_myo_vol / 1000 * 32)
-    mean_True_fib_vol = round(True_fib_vol / 1000 * 32)
-
-    mean_lv_vol = round(lv_vol / 1000 * 32)
-    mean_myo_vol = round(myo_vol / 1000 * 32)
-    mean_fib_vol = round(fib_vol / 1000 * 32)
-
-    mean_GT_myo = np.sum(GT_myo) * 32 / 1000
-    mean_CM_myo = np.sum(CM_myo) * 32 / 1000
-
-    mean_GT_fib = np.sum(GT_fib) * 32 / 1000
-    mean_CM_fib = np.sum(CM_fib) * 32 / 1000
-
-    return mean_GT_myo, mean_CM_myo, mean_GT_fib, mean_CM_fib, mean_True_myo_vol, mean_myo_vol, mean_True_fib_vol, mean_fib_vol
-
-
 class TissueMetrics(MetaParameters, MaskPrediction):
 
-    def __init__(self, predicted_masks):         
+    def __init__(self, Net, dataset):         
         super(MetaParameters, self).__init__()
         super(MaskPrediction, self).__init__()
+
+        model_net = Net
+        dataset_ = dataset
+
+        mp = MaskPrediction().prediction_masks(model_net, dataset_)
 
         if meta.CROPPING is True:
             self.kernel_sz = self.CROPP_KERNEL
         elif meta.CROPPING is False:
             self.kernel_sz = self.KERNEL
 
-        self.shp = predicted_masks[0]
-        self.pred_lv = predicted_masks[1]
-        self.labe_lv = predicted_masks[2]
-        self.pred_myo = predicted_masks[3]
-        self.labe_myo = predicted_masks[4]
-        self.pred_fib = predicted_masks[5]
-        self.labe_fib = predicted_masks[6]
-        self.sub_names = predicted_masks[7]
-        self.inputs = predicted_masks[8]
-        self.labels = predicted_masks[9]
-        self.predict = predicted_masks[10]
+        self.shp = mp[0]
+        self.pred_lv = mp[1]
+        self.labe_lv = mp[2]
+        self.pred_myo = mp[3]
+        self.labe_myo = mp[4]
+        self.pred_fib = mp[5]
+        self.labe_fib = mp[6]
+        self.sub_names = mp[7]
+        self.inputs = mp[8]
+        self.labels = mp[9]
+        self.predict = mp[10]
 
-    def get_orig_slice(self, sub_name):
+    @staticmethod
+    def get_orig_slice(sub_name):
         sub_name_list = sub_name.split(' ')
+        
         return sub_name_list
 
     def get_image_contrast(self, num_label):
@@ -199,6 +131,7 @@ class TissueMetrics(MetaParameters, MaskPrediction):
         return mean_contrast
 
     def get_image_metrics(self, label, prediction, metric_name: str):
+
         smooth = 1e-5
         GT = label.sum()
         CM = prediction.sum()
@@ -253,7 +186,7 @@ class TissueMetrics(MetaParameters, MaskPrediction):
         for i in range(self.shp[0]):
 
             #Замена пикселей фиброза на пиксели миокарда
-            if self.pred_fib[i].sum() < 10:
+            if self.pred_fib[i].sum().item() < 10:
                     self.pred_myo[i] += self.pred_fib[i]
                     self.pred_fib[i] = self.pred_fib[i] * 0
 
@@ -270,7 +203,7 @@ class TissueMetrics(MetaParameters, MaskPrediction):
             accur += fib_metrics[2]
             dice += fib_metrics[3]
 
-            print(self.sub_names[i], fib_metrics[3])
+            # print(self.sub_names[i], fib_metrics[3])
 
         mean_precision = round(precision / self.shp[0], 2) 
         mean_recall = round(recall / self.shp[0], 2)
@@ -279,6 +212,55 @@ class TissueMetrics(MetaParameters, MaskPrediction):
 
         return lv_dice_list, myo_dice_list, fib_dice_list, mean_precision, mean_recall, mean_accur, dice
 
+    @staticmethod
+    def get_volume(label):
+        lab_volume = label.sum().item()
+
+        return lab_volume
+
+    def get_recent_volume(self):
+        Vgt = round(float((GT_fib + smooth) / (GT_myo + GT_fib + smooth) * 100), 2)
+        Vcm = round(float((CM_fib + smooth) / (CM_myo + CM_fib + smooth) * 100), 2)
+        
+        return Vgt, Vcm
+
+    def bland_altman_metrics(self):
+        GT_fib, CM_fib = [], []
+        GT_myo, CM_myo = [], []
+
+        lv_vol, myo_vol, fib_vol = 0, 0, 0
+        True_lv_vol, True_myo_vol, True_fib_vol = 0, 0, 0
+
+        for i in range(self.shp[0]):
+
+            GT_myo.append(self.get_volume(self.labe_myo[i]))
+            CM_myo.append(self.get_volume(self.pred_myo[i]))
+            GT_fib.append(self.get_volume(self.labe_fib[i]))
+            CM_fib.append(self.get_volume(self.pred_fib[i]))
+
+            lv_vol += self.pred_lv[i].numpy().sum()
+            myo_vol += self.pred_myo[i].numpy().sum()
+            fib_vol += self.pred_fib[i].numpy().sum()
+
+            True_lv_vol += self.labe_lv[i].numpy().sum()
+            True_myo_vol += self.labe_myo[i].numpy().sum()
+            True_fib_vol += self.labe_fib[i].numpy().sum()                
+
+        mean_True_lv_vol = round(True_lv_vol / 1000 * 32)
+        mean_True_myo_vol = round(True_myo_vol / 1000 * 32)
+        mean_True_fib_vol = round(True_fib_vol / 1000 * 32)
+
+        mean_lv_vol = round(lv_vol / 1000 * 32)
+        mean_myo_vol = round(myo_vol / 1000 * 32)
+        mean_fib_vol = round(fib_vol / 1000 * 32)
+
+        mean_GT_myo = np.sum(GT_myo) * 32 / 1000
+        mean_CM_myo = np.sum(CM_myo) * 32 / 1000
+
+        mean_GT_fib = np.sum(GT_fib) * 32 / 1000
+        mean_CM_fib = np.sum(CM_fib) * 32 / 1000
+
+        return mean_GT_myo, mean_CM_myo, mean_GT_fib, mean_CM_fib, mean_True_myo_vol, mean_myo_vol, mean_True_fib_vol, mean_fib_vol
 
 
 

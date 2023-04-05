@@ -1,7 +1,7 @@
-import scipy
-
 from configuration import *
 from Validation.metrics import *
+from Validation.validation import *
+
 from Training.dataset import *
 from Preprocessing.split_dataset import *
 
@@ -9,6 +9,8 @@ from Preprocessing.split_dataset import *
 #########################################################################################################################
 ##TODO: COMMENTS
 #########################################################################################################################
+
+
 class PlotResults(MetaParameters):
 
     def __init__(self):         
@@ -20,6 +22,7 @@ class PlotResults(MetaParameters):
             self.kernel_sz = self.KERNEL
 
     def save_plot(self, sub_names, origImage, origMask, predMask):
+
         pp = PdfPages('results.pdf')
         slices = len(sub_names)
         figure, ax = plt.subplots(nrows = 1, ncols = 3, figsize = (8, 8))
@@ -43,8 +46,8 @@ class PlotResults(MetaParameters):
             pp.savefig(figure)
         pp.close()
 
-
     def prepare_plot(self, sub_names, origImage, origMask, predMask):
+
         figure, ax = plt.subplots(nrows = 1, ncols = 3, figsize = (8, 8))
 
         origImage = np.resize(origImage.cpu(), (self.kernel_sz, self.kernel_sz))
@@ -66,19 +69,20 @@ class PlotResults(MetaParameters):
 
     def make_predictions(self, predicted_masks):
 
-        ds = DiceLoss()
-
         for i in range(predicted_masks[0][0]):
             if predicted_masks[5][i].sum() < 10:
+
+                predicted_masks[3][i] += predicted_masks[5][i]
+                predicted_masks[5][i] = predicted_masks[5][i] * 0
                 predicted_masks[10][i][predicted_masks[10][i] == 3]= 2
 
-            fib_metrics = TissueMetrics(predicted_masks).get_image_metrics(predicted_masks[6][i], predicted_masks[5][i], 'FIB')
+            fib_metrics = tm.get_image_metrics(predicted_masks[6][i], predicted_masks[5][i], 'FIB')
+            
             self.dice_lv = round((float(ds(predicted_masks[1][i], predicted_masks[2][i]))), 3)
             self.dice_myo = round((float(ds(predicted_masks[3][i], predicted_masks[4][i]))), 3)
-            self.dice_fib = fib_metrics[3]
-            # dice_fib = round((float(ds(predicted_masks[5][i], predicted_masks[6][i]))), 3)
-            # dice = round((self.dice_lv + self.dice_myo + self.dice_fib) / 3, 3)
+            self.dice_fib = round((float(ds(predicted_masks[5][i], predicted_masks[6][i]))), 3)
             self.precision, self.recall, self.accur = fib_metrics[0], fib_metrics[1], fib_metrics[2]
+
             if self.dice_fib < 0.2:
                 self.prepare_plot(predicted_masks[7][i], predicted_masks[8][i], predicted_masks[9][i], predicted_masks[10][i])
 
@@ -124,10 +128,10 @@ test_loader = DataLoader(test_set, test_batch_size, drop_last=True, shuffle=Fals
 # train_batch_size = len(train_set)
 # train_loader = DataLoader(train_set, train_batch_size, drop_last=True, shuffle=True, pin_memory=False)
 
-
-
-predicted_masks = prediction_masks(unet, test_loader)
 # predicted_masks = prediction_masks(unet, valid_loader)
+ds = DiceLoss()
+show_predicted_masks = MaskPrediction().prediction_masks(unet, test_loader)
+tm = TissueMetrics(unet, test_loader)
 
 
 #############################
@@ -145,8 +149,8 @@ def bland_altman_per_subject(unet, test_list, meta, kernel_sz):
         test_batch_size = len(test_set)
         test_loader = DataLoader(test_set, test_batch_size, drop_last=True, shuffle=False, pin_memory=True)
 
-        predicted_masks = prediction_masks(unet, test_loader)
-        metrics = bland_altman(predicted_masks)
+        tm = TissueMetrics(unet, test_loader)
+        metrics = tm.bland_altman_metrics()
 
         GT_myo.append(metrics[0])
         CM_myo.append(metrics[1])
@@ -158,9 +162,6 @@ def bland_altman_per_subject(unet, test_list, meta, kernel_sz):
         Fib_vol.append(metrics[7])
 
     return GT_myo, CM_myo, GT_fib, CM_fib, true_Myo_vol, Myo_vol, true_Fib_vol, Fib_vol
-
-
-GT_myo, CM_myo, GT_fib, CM_fib, true_Myo_vol, Myo_vol, true_Fib_vol, Fib_vol = bland_altman_per_subject(unet, test_list, meta, kernel_sz)
 
 
 def stats_per_subject():
@@ -177,12 +178,12 @@ def stats_per_subject():
         test_batch_size = len(test_set)
         test_loader = DataLoader(test_set, test_batch_size, drop_last=True, shuffle=False, pin_memory=True)
 
-        predicted_masks = prediction_masks(unet, test_loader)
-        counted_parameters = TissueMetrics(predicted_masks).image_metrics()
+        tm = TissueMetrics(unet, test_loader)
+        counted_parameters = tm.image_metrics()
 
-        stats_lv.append(np.mean(TissueMetrics(predicted_masks).main_stat_parameters(counted_parameters[0])[1]))
-        stats_myo.append(np.mean(TissueMetrics(predicted_masks).main_stat_parameters(counted_parameters[1])[1]))
-        stats_fib.append(np.mean(TissueMetrics(predicted_masks).main_stat_parameters(counted_parameters[2])[1]))
+        stats_lv.append(np.mean(tm.main_stat_parameters(counted_parameters[0])[1]))
+        stats_myo.append(np.mean(tm.main_stat_parameters(counted_parameters[1])[1]))
+        stats_fib.append(np.mean(tm.main_stat_parameters(counted_parameters[2])[1]))
 
         Precision_FIB.append(np.mean(counted_parameters[3]))
         Recall_FIB.append(np.mean(counted_parameters[4]))
@@ -192,4 +193,8 @@ def stats_per_subject():
     return stats_lv, stats_myo, stats_fib, Precision_FIB, Recall_FIB, Accuracy, Dice_list
 
 
+GT_myo, CM_myo, GT_fib, CM_fib, true_Myo_vol, Myo_vol, true_Fib_vol, Fib_vol = bland_altman_per_subject(unet, test_list, meta, kernel_sz)
 stats_lv, stats_myo, stats_fib, Precision_FIB, Recall_FIB, Accuracy, Dice_list = stats_per_subject()
+
+
+
