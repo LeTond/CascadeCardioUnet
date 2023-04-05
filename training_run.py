@@ -55,12 +55,8 @@ elif meta.CROPPING is False:
 train_set = MyDataset(meta.NUM_LAYERS, train_ds_origin, train_ds_mask, train_ds_names, kernel_sz, target_transform,
                       target_transform)
 
-for i in range(7):
+for i in range(3):
     train_set += MyDataset(meta.NUM_LAYERS, train_ds_origin, train_ds_mask, train_ds_names, kernel_sz, transform, target_transform)
-    # for salc in range(len(train_ds_names)):
-    #     slc_name = int(train_ds_names[salc].split(" ")[2])
-    #     if slc_name == 1 or slc_name == 9:
-    #         train_set += MyDataset(meta.NUM_LAYERS, train_ds_origin[salc-1:salc+1], train_ds_mask[salc-1:salc+1], train_ds_names[salc-1:salc+1], kernel_sz, transform, target_transform)
 train_loader = DataLoader(train_set, meta.BT_SZ, drop_last=True, shuffle=True, pin_memory=False)
 
 
@@ -72,4 +68,7 @@ valid_loader = DataLoader(valid_set, valid_batch_size, drop_last=True, shuffle=T
 
 print(f'Train size: {len(train_set)} | Valid size: {len(valid_set)}')
 model = TrainNetwork(model, optimizer, loss_function, train_loader, valid_loader, meta, ds).train()
-# model = TrainNetwork(model, optimizer, loss_function, valid_loader, train_loader, meta, ds).train()
+
+
+
+

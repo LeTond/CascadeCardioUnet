@@ -20,9 +20,9 @@ if meta.DATASET_NAME != "ALMAZ":
     train_list  = list(set(dataset_list) - set(test_list))
 
     train_dataset_size = len(train_list)
-    print(f'Full Dataset: size - {len(dataset_list)}, List - {dataset_list}')
-    print(f'Train Dataset: size - {train_dataset_size}, List - {train_list}')
-    print(f'Test dataset: size - {len(test_list)}, List - {test_list}')
+    # print(f'Full Dataset: size - {len(dataset_list)}, List - {dataset_list}')
+    # print(f'Train Dataset: size - {train_dataset_size}, List - {train_list}')
+    # print(f'Test dataset: size - {len(test_list)}, List - {test_list}')
 
     valid_list_01 = train_list[round(0.8*train_dataset_size):]
     train_list_01 = list(set(train_list)-set(valid_list_01))

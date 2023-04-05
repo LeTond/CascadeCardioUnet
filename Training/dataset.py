@@ -56,9 +56,8 @@ class GetData(MetaParameters):
                     image = images[:, :, slc]
                     mask = masks[:, :, slc]
                     
-                    # if (mask==4).any() or slc > 9:
                     if (mask==4).any():
-                        print(f"Subject {sub_name} slice {slc} was passed")
+                        # print(f"Subject {sub_name} slice {slc} was passed")
                         pass
                     else:
                         if self.CROPPING is True:
@@ -71,7 +70,7 @@ class GetData(MetaParameters):
 
                         list_names.append(f'{sub_name} Slice {images.shape[2] - slc}')
                     
-        print(f'Count of slice in dataset: {len(list_names)}')
+        # print(f'Count of slice in dataset: {len(list_names)}')
         try:
             shuff = shuff_dataset(list_images, list_masks, list_names)
         except:
