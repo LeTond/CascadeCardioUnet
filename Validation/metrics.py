@@ -1,4 +1,4 @@
-from Preprocessing.preprocessing import view_matrix, read_nii
+from Preprocessing.preprocessing import ReadImages
 from parameters import meta 
 from Preprocessing.dirs_logs import *
 from Training.dataset import *
@@ -27,20 +27,6 @@ class DiceLoss(nn.Module):
         A_sum = torch.sum(iflat * iflat)
         B_sum = torch.sum(tflat * tflat)
         return (2.0 * intersection + smooth) / (A_sum + B_sum + smooth)
-
-
-class FocalLoss(nn.modules.loss._WeightedLoss):
-    def __init__(self, weight = None, gamma = 2,reduction = 'mean'):    #reduction='sum'
-        super(FocalLoss, self).__init__(weight,reduction = reduction)
-        self.gamma = gamma
-        self.weight = weight
-
-    def forward(self, input, target):
-
-        ce_loss = F.cross_entropy(input, target,reduction=self.reduction,weight=self.weight)
-        pt = torch.exp(-ce_loss)
-        focal_loss = ((1 - pt) ** self.gamma * ce_loss).mean()
-        return focal_loss
 
 
 def create_hist(value_list: list):
@@ -162,8 +148,8 @@ class TissueMetrics(MetaParameters, MaskPrediction):
             orig_slc = int(self.get_orig_slice(self.sub_names[i])[2]) 
             orig_sub = str(self.get_orig_slice(self.sub_names[i])[0])
             
-            self.images_matrix = view_matrix(read_nii(f"{self.ORIGS_DIR}/{orig_sub}.nii"))[:,:,-orig_slc] 
-            self.masks_matrix = view_matrix(read_nii(f"{self.MASKS_DIR}/{orig_sub}.nii"))[:,:,-orig_slc] 
+            self.images_matrix = ReadImages(f"{self.ORIGS_DIR}/{orig_sub}.nii").view_matrix()[:,:,-orig_slc] 
+            self.masks_matrix = ReadImages(f"{self.MASKS_DIR}/{orig_sub}.nii").view_matrix()[:,:,-orig_slc] 
 
             mean_contrast_lv = self.get_image_contrast(num_label = 1)
             mean_contrast_myo = self.get_image_contrast(num_label = 2)

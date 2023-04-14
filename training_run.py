@@ -37,6 +37,10 @@ elif meta.FOLD_NAME == "04":
 elif meta.FOLD_NAME == "05":
     train_ds = GetData(train_list_05).generated_data_list()    
     valid_ds = GetData(valid_list_05).generated_data_list()
+elif meta.FOLD_NAME == "full":
+    train_ds = GetData(train_list_full).generated_data_list()    
+    valid_ds = GetData(valid_list_full).generated_data_list()
+
 
 train_ds_origin = train_ds[0]
 train_ds_mask = train_ds[1]
@@ -55,7 +59,7 @@ elif meta.CROPPING is False:
 train_set = MyDataset(meta.NUM_LAYERS, train_ds_origin, train_ds_mask, train_ds_names, kernel_sz, target_transform,
                       target_transform)
 
-for i in range(3):
+for i in range(9):
     train_set += MyDataset(meta.NUM_LAYERS, train_ds_origin, train_ds_mask, train_ds_names, kernel_sz, transform, target_transform)
 train_loader = DataLoader(train_set, meta.BT_SZ, drop_last=True, shuffle=True, pin_memory=False)
 

@@ -27,11 +27,11 @@ def divide_chunks(l, n):
         yield l[i:i + n]
 
         
-## Transfer to Preprocessing.preprocessing
-def read_nii_zoom(path_to_nii):
-    # matplotlib.use('TkAgg')
-    img = nib.load(path_to_nii)
-    return img.header.get_zooms()
+# ## Transfer to Preprocessing.preprocessing
+# def read_nii_zoom(path_to_nii):
+#     # matplotlib.use('TkAgg')
+#     img = nib.load(path_to_nii)
+#     return img.header.get_zooms()
 
 
 def plot_to_pdf(file_name, origImage, predMask, full_lv_volume, full_myo_volume, full_fib_volume, volumes_lv, volumes_myo, volumes_fib, related_volume, related_full_fib_volume, kernel_sz, evaluate_directory):
@@ -212,7 +212,7 @@ class NiftiSaver(MetaParameters):
         mask_list = np.flip(mask_list, (0))
         mask_list = np.round(mask_list)
 
-        new_image = nib.Nifti1Image(mask_list, affine = np.eye(self.NUM_LAYERS))
+        new_image = nib.Nifti1Image(mask_list, affine = np.eye(4))
         print(type(new_image), image_shp)
 
         nib.save(new_image, f'{evaluate_directory}/{file_name}')
@@ -233,13 +233,13 @@ class GetListImages(MetaParameters):
         count = 0
         def_coord = None
 
-        fov = read_nii_zoom(f"{self.dataset_path}{self.file_name}")
-        images = view_matrix(read_nii(f"{self.dataset_path}{self.file_name}"))
-
+        fov = ReadImages(f"{self.dataset_path}{self.file_name}").get_nii_fov()
+        images = ReadImages(f"{self.dataset_path}{self.file_name}").view_matrix()
+        
         orig_img_shape = images.shape
 
         if self.preseg:
-            masks = view_matrix(read_nii(f"{self.path_to_data}{self.file_name}"))
+            masks = ReadImages(f"{self.path_to_data}{self.file_name}").view_matrix()
             images, masks, def_coord = EvalPreprocessData(images, masks).presegmentation_tissues()
 
         for slc in range(images.shape[2]):

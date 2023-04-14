@@ -30,19 +30,23 @@ class GetData(MetaParameters):
         super(MetaParameters, self).__init__()
         self.files = files
 
-    def get_images_masks(self, file_name):
+    # def get_images_masks(self, file_name):
 
-        images = view_matrix(read_nii(f"{self.ORIGS_DIR}/{file_name}"))
-        masks = view_matrix(read_nii(f"{self.MASKS_DIR}/{file_name}"))
+    #     images = ReadImages(f"{self.ORIGS_DIR}/{file_name}").view_matrix()
+    #     masks = ReadImages(f"{self.MASKS_DIR}/{file_name}").view_matrix()
 
-        return images, masks
+    #     return images, masks
 
     def generated_data_list(self):
         list_images, list_masks, list_names = [], [], []
 
         for file_name in self.files:
             if file_name.endswith('.nii'):
-                images, masks = self.get_images_masks(file_name)
+                # images, masks = self.get_images_masks(file_name)
+
+                images = ReadImages(f"{self.ORIGS_DIR}/{file_name}").view_matrix()
+                masks = ReadImages(f"{self.MASKS_DIR}/{file_name}").view_matrix()
+
                 sub_name = file_name.replace('.nii', '')
 
 
@@ -72,7 +76,7 @@ class GetData(MetaParameters):
                     
         # print(f'Count of slice in dataset: {len(list_names)}')
         try:
-            shuff = shuff_dataset(list_images, list_masks, list_names)
+            shuff = PreprocessData(list_images, list_masks, list_names).shuff_dataset()
         except:
             pass
         return list_images, list_masks, list_names
