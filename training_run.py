@@ -22,25 +22,8 @@ from Preprocessing.split_dataset import *
 #         super(MetaParameters, self).__init__()
 
 
-if meta.FOLD_NAME == "01":
-    train_ds = GetData(train_list_01).generated_data_list()    
-    valid_ds = GetData(valid_list_01).generated_data_list()
-elif meta.FOLD_NAME == "02":
-    train_ds = GetData(train_list_02).generated_data_list()    
-    valid_ds = GetData(valid_list_02).generated_data_list()
-elif meta.FOLD_NAME == "03":
-    train_ds = GetData(train_list_03).generated_data_list()    
-    valid_ds = GetData(valid_list_03).generated_data_list()
-elif meta.FOLD_NAME == "04":
-    train_ds = GetData(train_list_04).generated_data_list()    
-    valid_ds = GetData(valid_list_04).generated_data_list()
-elif meta.FOLD_NAME == "05":
-    train_ds = GetData(train_list_05).generated_data_list()    
-    valid_ds = GetData(valid_list_05).generated_data_list()
-elif meta.FOLD_NAME == "full":
-    train_ds = GetData(train_list_full).generated_data_list()    
-    valid_ds = GetData(valid_list_full).generated_data_list()
-
+train_ds = GetData(train_list).generated_data_list()    
+valid_ds = GetData(valid_list).generated_data_list()
 
 train_ds_origin = train_ds[0]
 train_ds_mask = train_ds[1]
@@ -49,7 +32,6 @@ train_ds_names = train_ds[2]
 valid_ds_origin = valid_ds[0]
 valid_ds_mask = valid_ds[1]
 valid_ds_names = valid_ds[2]
-
 
 if meta.CROPPING is True:
     kernel_sz = meta.CROPP_KERNEL

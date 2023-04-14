@@ -98,15 +98,6 @@ test_ds_origin = test_ds[0]
 test_ds_mask = test_ds[1]
 test_ds_names = test_ds[2]
 
-# valid_ds = GetData(valid_list_05).generated_data_list()
-# valid_ds_origin = valid_ds[0]
-# valid_ds_mask = valid_ds[1]
-# valid_ds_names = valid_ds[2]
-
-# train_ds = GetData(train_list).generated_data_list()
-# train_ds_origin = train_ds[0]
-# train_ds_mask = train_ds[1]
-# train_ds_names = train_ds[2]
 
 if meta.CROPPING is False:
     unet = torch.load(f'{meta.PROJ_NAME}/{meta.MODEL_NAME}.pth').to(device=device)
@@ -120,15 +111,6 @@ test_set = MyDataset(meta.NUM_LAYERS, test_ds_origin, test_ds_mask, test_ds_name
 test_batch_size = len(test_set)
 test_loader = DataLoader(test_set, test_batch_size, drop_last=True, shuffle=False, pin_memory=True)
 
-# valid_set = MyDataset(meta.NUM_LAYERS, valid_ds_origin, valid_ds_mask, valid_ds_names, kernel_sz, target_transform, target_transform)
-# valid_batch_size = len(valid_set)
-# valid_loader = DataLoader(valid_set, valid_batch_size, drop_last=True, shuffle=True, pin_memory=False)
-
-# train_set = MyDataset(meta.NUM_LAYERS, train_ds_origin, train_ds_mask, train_ds_names, kernel_sz, target_transform, target_transform)
-# train_batch_size = len(train_set)
-# train_loader = DataLoader(train_set, train_batch_size, drop_last=True, shuffle=True, pin_memory=False)
-
-# predicted_masks = prediction_masks(unet, valid_loader)
 ds = DiceLoss()
 show_predicted_masks = MaskPrediction().prediction_masks(unet, test_loader)
 tm = TissueMetrics(unet, test_loader)
