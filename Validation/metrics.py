@@ -232,7 +232,7 @@ class TissueMetrics(MetaParameters, MaskPrediction):
             True_myo_vol += self.labe_myo[i].numpy().sum()
             True_fib_vol += self.labe_fib[i].numpy().sum()                
 
-        mean_True_lv_vol = round(True_lv_vol / 1000 * 32)
+        mean_True_lv_vol = round(True_lv_vol / 1000 * 32)   #TODO: read pixel size from header.zoom
         mean_True_myo_vol = round(True_myo_vol / 1000 * 32)
         mean_True_fib_vol = round(True_fib_vol / 1000 * 32)
 

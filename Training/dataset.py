@@ -30,25 +30,15 @@ class GetData(MetaParameters):
         super(MetaParameters, self).__init__()
         self.files = files
 
-    # def get_images_masks(self, file_name):
-
-    #     images = ReadImages(f"{self.ORIGS_DIR}/{file_name}").view_matrix()
-    #     masks = ReadImages(f"{self.MASKS_DIR}/{file_name}").view_matrix()
-
-    #     return images, masks
-
     def generated_data_list(self):
         list_images, list_masks, list_names = [], [], []
 
         for file_name in self.files:
             if file_name.endswith('.nii'):
-                # images, masks = self.get_images_masks(file_name)
 
                 images = ReadImages(f"{self.ORIGS_DIR}/{file_name}").view_matrix()
                 masks = ReadImages(f"{self.MASKS_DIR}/{file_name}").view_matrix()
-
                 sub_name = file_name.replace('.nii', '')
-
 
                 ## Move this part into the MyDataset.preprocessing/normalization method 
                 if self.CROPPING is True:
@@ -61,7 +51,7 @@ class GetData(MetaParameters):
                     mask = masks[:, :, slc]
                     
                     if (mask==4).any():
-                        # print(f"Subject {sub_name} slice {slc} was passed")
+                        print(f"Subject {sub_name} slice {slc} was passed")
                         pass
                     else:
                         if self.CROPPING is True:
@@ -71,10 +61,8 @@ class GetData(MetaParameters):
                         
                         list_images.append(normalized[0])
                         list_masks.append(normalized[1])
-
                         list_names.append(f'{sub_name} Slice {images.shape[2] - slc}')
-                    
-        # print(f'Count of slice in dataset: {len(list_names)}')
+        
         try:
             shuff = PreprocessData(list_images, list_masks, list_names).shuff_dataset()
         except:

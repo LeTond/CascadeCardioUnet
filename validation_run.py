@@ -122,61 +122,74 @@ def bland_altman_per_subject(unet, test_list, meta, kernel_sz):
     GT_myo, CM_myo, GT_fib, CM_fib, true_Myo_vol, Myo_vol, true_Fib_vol, Fib_vol = [], [], [], [], [], [], [], []
 
     for subj in test_list:
+
         test_ds = GetData([subj]).generated_data_list()
         test_ds_origin = test_ds[0]
         test_ds_mask = test_ds[1]
         test_ds_names = test_ds[2]
+        
+        try:
+            test_set = MyDataset(meta.NUM_LAYERS, test_ds_origin, test_ds_mask, test_ds_names, kernel_sz, target_transform, target_transform)
+            test_batch_size = len(test_set)
+            test_loader = DataLoader(test_set, test_batch_size, drop_last=True, shuffle=False, pin_memory=True)
 
-        test_set = MyDataset(meta.NUM_LAYERS, test_ds_origin, test_ds_mask, test_ds_names, kernel_sz, target_transform, target_transform)
-        test_batch_size = len(test_set)
-        test_loader = DataLoader(test_set, test_batch_size, drop_last=True, shuffle=False, pin_memory=True)
+            metrics = TissueMetrics(unet, test_loader).bland_altman_metrics()
+            GT_myo.append(metrics[0])
+            CM_myo.append(metrics[1])
+            GT_fib.append(metrics[2])
+            CM_fib.append(metrics[3])
+            true_Myo_vol.append(metrics[4])
+            Myo_vol.append(metrics[5])
+            true_Fib_vol.append(metrics[6])
+            Fib_vol.append(metrics[7])
+        
+        except ValueError:
+            print(f'Subject {subj} has no suitable images !!!!')
 
-        tm = TissueMetrics(unet, test_loader)
-        metrics = tm.bland_altman_metrics()
-
-        GT_myo.append(metrics[0])
-        CM_myo.append(metrics[1])
-        GT_fib.append(metrics[2])
-        CM_fib.append(metrics[3])
-        true_Myo_vol.append(metrics[4])
-        Myo_vol.append(metrics[5])
-        true_Fib_vol.append(metrics[6])
-        Fib_vol.append(metrics[7])
 
     return GT_myo, CM_myo, GT_fib, CM_fib, true_Myo_vol, Myo_vol, true_Fib_vol, Fib_vol
 
 
-def stats_per_subject():
+def stats_per_subject(unet, test_list, meta, kernel_sz):
     stats_lv, stats_myo, stats_fib = [], [], []
     Precision_FIB, Recall_FIB, Accuracy, Dice_list = [], [], [], []
 
     for subj in test_list:
+
         test_ds = GetData([subj]).generated_data_list()
         test_ds_origin = test_ds[0]
         test_ds_mask = test_ds[1]
         test_ds_names = test_ds[2]
 
-        test_set = MyDataset(meta.NUM_LAYERS, test_ds_origin, test_ds_mask, test_ds_names, kernel_sz, target_transform, target_transform)
-        test_batch_size = len(test_set)
-        test_loader = DataLoader(test_set, test_batch_size, drop_last=True, shuffle=False, pin_memory=True)
+        try:
+            test_set = MyDataset(meta.NUM_LAYERS, test_ds_origin, test_ds_mask, test_ds_names, kernel_sz, target_transform, target_transform)
+            test_batch_size = len(test_set)
+            test_loader = DataLoader(test_set, test_batch_size, drop_last=True, shuffle=False, pin_memory=True)
 
-        tm = TissueMetrics(unet, test_loader)
-        counted_parameters = tm.image_metrics()
+            tm = TissueMetrics(unet, test_loader)
+            counted_parameters = tm.image_metrics()
 
-        stats_lv.append(np.mean(tm.main_stat_parameters(counted_parameters[0])[1]))
-        stats_myo.append(np.mean(tm.main_stat_parameters(counted_parameters[1])[1]))
-        stats_fib.append(np.mean(tm.main_stat_parameters(counted_parameters[2])[1]))
+            stats_lv.append(np.mean(tm.main_stat_parameters(counted_parameters[0])[1]))
+            stats_myo.append(np.mean(tm.main_stat_parameters(counted_parameters[1])[1]))
+            stats_fib.append(np.mean(tm.main_stat_parameters(counted_parameters[2])[1]))
 
-        Precision_FIB.append(np.mean(counted_parameters[3]))
-        Recall_FIB.append(np.mean(counted_parameters[4]))
-        Accuracy.append(np.mean(counted_parameters[5]))
-        Dice_list.append(counted_parameters[2])
+            Precision_FIB.append(np.mean(counted_parameters[3]))
+            Recall_FIB.append(np.mean(counted_parameters[4]))
+            Accuracy.append(np.mean(counted_parameters[5]))
+            Dice_list.append(counted_parameters[2])
+
+        except ValueError:
+            print(f'Subject {subj} has no suitable images !!!!')
 
     return stats_lv, stats_myo, stats_fib, Precision_FIB, Recall_FIB, Accuracy, Dice_list
 
 
-GT_myo, CM_myo, GT_fib, CM_fib, true_Myo_vol, Myo_vol, true_Fib_vol, Fib_vol = bland_altman_per_subject(unet, test_list, meta, kernel_sz)
-stats_lv, stats_myo, stats_fib, Precision_FIB, Recall_FIB, Accuracy, Dice_list = stats_per_subject()
+try:
+    GT_myo, CM_myo, GT_fib, CM_fib, true_Myo_vol, Myo_vol, true_Fib_vol, Fib_vol = bland_altman_per_subject(unet, test_list, meta, kernel_sz)
+    stats_lv, stats_myo, stats_fib, Precision_FIB, Recall_FIB, Accuracy, Dice_list = stats_per_subject(unet, test_list, meta, kernel_sz)
+except ValueError:
+    print(f'Subjects has no suitable images !!!!')
+
 
 
 

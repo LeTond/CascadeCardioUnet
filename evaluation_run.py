@@ -22,8 +22,12 @@ class Evaluation(MetaParameters):
         neural_model = torch.load(f'{self.project_name}/{self.MODEL_NAME}.pth').to(device=device)
         images, image_shp, fov_size, def_cord = GetListImages(file_name, self.eval_dir, self.dataset_path, preseg = False).array_list(self.KERNEL)
       
-        pdf_predictions(neural_model, file_name, self.KERNEL, images, image_shp, fov_size, self.eval_dir)
-        NiftiSaver().save_predictions(neural_model, file_name, self.KERNEL, images, image_shp, fov_size, def_cord, self.eval_dir)
+        masks_list = PredictionMask(neural_model, self.KERNEL, images, image_shp, def_cord).get_predicted_mask()
+
+        # pdf_predictions(neural_model, file_name, self.KERNEL, images, image_shp, fov_size, def_cord, self.eval_dir)
+        NiftiSaver(masks_list, file_name, self.eval_dir).save_nifti()
+        PdfSaver(file_name, self.dataset_path, self.eval_dir).save_pdf()
+
 
     def preseg_evaluation(self, file_name):
         ##  Segmenation with matrix size CROPP_KERNEL by CROPP_KERNEL
@@ -32,22 +36,25 @@ class Evaluation(MetaParameters):
         neural_model = torch.load(f'{project_name}/{self.MODEL_NAME}.pth').to(device=device)        
         images, image_shp, fov_size, def_cord = GetListImages(file_name, self.eval_dir, self.dataset_path, preseg = True).array_list(self.CROPP_KERNEL)
 
-        pdf_predictions(neural_model, file_name, self.CROPP_KERNEL, images, image_shp, fov_size, self.cropp_eval_dir)
-        NiftiSaver().save_predictions(neural_model, file_name, self.CROPP_KERNEL, images, image_shp, fov_size, def_cord, self.cropp_eval_dir)
-
+        masks_list = PredictionMask(neural_model, self.CROPP_KERNEL, images, image_shp, def_cord).get_predicted_mask()
+        
+        # pdf_predictions(neural_model, file_name, self.CROPP_KERNEL, images, image_shp, fov_size, def_cord, self.cropp_eval_dir)        
+        NiftiSaver(masks_list, file_name, self.cropp_eval_dir).save_nifti()
+        PdfSaver(file_name, self.dataset_path, self.cropp_eval_dir).save_pdf()
+ 
 
     def run_process(self):
 
         dataset_list = ReadImages(f'{self.DATASET_DIR}{self.DATASET_NAME}_origin_new/').get_dataset_list()
         for file_name in dataset_list:
             if file_name.endswith('.nii'):
-                print('Stage 1')
                 self.base_evaluation(file_name)
-                print('Evaluation complete')
+                print(f'New subject {file_name} was saved with base evaluation Model')
+
                 if self.CROPPING is True:
-                    print('Stage 2')
                     self.preseg_evaluation(file_name)
-                    print('Cropped Evaluation complete')
+                    print(f'New subject {file_name} was saved with presegment_evaluation Model')
+
 
 
 if __name__ == "__main__":
