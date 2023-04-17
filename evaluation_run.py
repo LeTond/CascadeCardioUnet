@@ -20,11 +20,9 @@ class Evaluation(MetaParameters):
         ##  Presegmenation with matrix size KERNEL by KERNEL    
         create_dir(self.eval_dir)
         neural_model = torch.load(f'{self.project_name}/{self.MODEL_NAME}.pth').to(device=device)
-        images, image_shp, fov_size, def_cord = GetListImages(file_name, self.eval_dir, self.dataset_path, preseg = False).array_list(self.KERNEL)
+        images, image_shp, def_cord = GetListImages(file_name, self.eval_dir, self.dataset_path, preseg = False).array_list(self.KERNEL)
       
         masks_list = PredictionMask(neural_model, self.KERNEL, images, image_shp, def_cord).get_predicted_mask()
-
-        # pdf_predictions(neural_model, file_name, self.KERNEL, images, image_shp, fov_size, def_cord, self.eval_dir)
         NiftiSaver(masks_list, file_name, self.eval_dir).save_nifti()
         PdfSaver(file_name, self.dataset_path, self.eval_dir).save_pdf()
 
@@ -34,11 +32,9 @@ class Evaluation(MetaParameters):
         create_dir(self.cropp_eval_dir)
         project_name = f'{self.CROPP_EVAL_DIR}/Lr({self.LR})_Drp({self.DROPOUT})_batch({self.BT_SZ})_L2({self.WDC})'
         neural_model = torch.load(f'{project_name}/{self.MODEL_NAME}.pth').to(device=device)        
-        images, image_shp, fov_size, def_cord = GetListImages(file_name, self.eval_dir, self.dataset_path, preseg = True).array_list(self.CROPP_KERNEL)
+        images, image_shp, def_cord = GetListImages(file_name, self.eval_dir, self.dataset_path, preseg = True).array_list(self.CROPP_KERNEL)
 
         masks_list = PredictionMask(neural_model, self.CROPP_KERNEL, images, image_shp, def_cord).get_predicted_mask()
-        
-        # pdf_predictions(neural_model, file_name, self.CROPP_KERNEL, images, image_shp, fov_size, def_cord, self.cropp_eval_dir)        
         NiftiSaver(masks_list, file_name, self.cropp_eval_dir).save_nifti()
         PdfSaver(file_name, self.dataset_path, self.cropp_eval_dir).save_pdf()
  

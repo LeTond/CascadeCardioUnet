@@ -159,8 +159,9 @@ class PdfSaver():
         volumes_lv, volumes_myo, volumes_fib, related_volume = [], [], [], []
         
         #TODO: get pixel size from header.zoom
-        volume_size = 2 * 2
-            
+        fov = ReadImages(f"{self.dataset_path}{self.file_name}").get_nii_fov()
+        volume_size = fov[0] * fov[1] * fov[2]
+
         for mask in self.masks_list:
 
             mask_lv = (mask == 1)
@@ -181,6 +182,7 @@ class PdfSaver():
             full_fib_volume += fib_volume
         
         related_full_fib_volume = round(((full_fib_volume) / (full_myo_volume + full_fib_volume + smooth)) * 100, 0)
+        
         return full_lv_volume, full_myo_volume, full_fib_volume, volumes_lv, volumes_myo, volumes_fib, related_volume, related_full_fib_volume
 
     def save_pdf(self):
@@ -219,9 +221,9 @@ class PdfSaver():
                     ax[i, 1].imshow(masks[i], alpha = 0.5)
                     
                     ax[i, 1].set_title(f'rel vol: {relVolume[i]} % '
-                                       f'LV vol: {LVv[i]} mm2 ' 
-                                       f'MYO vol: {MYOv[i]} mm2 '
-                                       f'FIB vol: {FIBv[i]} mm2', 
+                                       f'LV vol: {LVv[i]} mm^3 ' 
+                                       f'MYO vol: {MYOv[i]} mm^3 '
+                                       f'FIB vol: {FIBv[i]} mm^3', 
                                        fontsize = 8, fontweight = 'bold', loc = 'right')
                     
                     figure.tight_layout()
@@ -233,9 +235,9 @@ class PdfSaver():
                 ax[1].imshow(images[0], plt.get_cmap('gray'))
                 ax[1].imshow(masks[0], alpha = 0.5)
                 ax[1].set_title(f'rel vol: {relVolume[0]} % '
-                                f'LV vol: {LVv[0]} mm2 '  
-                                f'MYO vol: {MYOv[0]} mm2 ' 
-                                f'FIB vol: {FIBv[0]} mm2',
+                                f'LV vol: {LVv[0]} mm^3 '  
+                                f'MYO vol: {MYOv[0]} mm^3 ' 
+                                f'FIB vol: {FIBv[0]} mm^3',
                                 fontsize = 8, fontweight = 'bold', loc = 'right')
 
                 figure.tight_layout()
@@ -269,7 +271,6 @@ class GetListImages(MetaParameters):
         count = 0
         def_coord = None
 
-        fov = ReadImages(f"{self.dataset_path}{self.file_name}").get_nii_fov()
         images = ReadImages(f"{self.dataset_path}{self.file_name}").view_matrix()
         
         orig_img_shape = images.shape
@@ -285,7 +286,7 @@ class GetListImages(MetaParameters):
             normalized = PreprocessData(image, mask=None).preprocessing(kernel_sz)[0]
             list_images.append(normalized)
 
-        return list_images, orig_img_shape, fov, def_coord
+        return list_images, orig_img_shape, def_coord
 
 
 class EvalPreprocessData(MetaParameters):
