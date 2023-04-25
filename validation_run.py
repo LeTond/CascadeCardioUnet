@@ -6,11 +6,6 @@ from Training.dataset import *
 from Preprocessing.split_dataset import *
 
 
-#########################################################################################################################
-##TODO: COMMENTS
-#########################################################################################################################
-
-
 class PlotResults(MetaParameters):
 
     def __init__(self):         
@@ -83,40 +78,16 @@ class PlotResults(MetaParameters):
             self.dice_fib = round((float(ds(predicted_masks[5][i], predicted_masks[6][i]))), 3)
             self.precision, self.recall, self.accur = fib_metrics[0], fib_metrics[1], fib_metrics[2]
 
-            if self.dice_fib < 0.2:
-                self.prepare_plot(predicted_masks[7][i], predicted_masks[8][i], predicted_masks[9][i], predicted_masks[10][i])
+            # if self.dice_fib < 0.2:
+            self.prepare_plot(predicted_masks[7][i], predicted_masks[8][i], predicted_masks[9][i], predicted_masks[10][i])
 
 
+#############################
 # class Validation(MetaParameters):
 
 #     def __init__(self):         
 #         super(MetaParameters, self).__init__()
 
-
-test_ds = GetData(test_list).generated_data_list()
-test_ds_origin = test_ds[0]
-test_ds_mask = test_ds[1]
-test_ds_names = test_ds[2]
-
-
-if meta.CROPPING is False:
-    unet = torch.load(f'{meta.PROJ_NAME}/{meta.MODEL_NAME}.pth').to(device=device)
-    kernel_sz = meta.KERNEL
-
-elif meta.CROPPING is True:
-    unet = torch.load(f'{meta.CROPP_PROJ_NAME}/{meta.MODEL_NAME}.pth').to(device=device)
-    kernel_sz = meta.CROPP_KERNEL 
-
-test_set = MyDataset(meta.NUM_LAYERS, test_ds_origin, test_ds_mask, test_ds_names, kernel_sz, target_transform, target_transform)
-test_batch_size = len(test_set)
-test_loader = DataLoader(test_set, test_batch_size, drop_last=True, shuffle=False, pin_memory=True)
-
-ds = DiceLoss()
-show_predicted_masks = MaskPrediction().prediction_masks(unet, test_loader)
-tm = TissueMetrics(unet, test_loader)
-
-
-#############################
 def bland_altman_per_subject(unet, test_list, meta, kernel_sz):
     
     GT_myo, CM_myo, GT_fib, CM_fib, true_Myo_vol, Myo_vol, true_Fib_vol, Fib_vol = [], [], [], [], [], [], [], []
@@ -129,7 +100,7 @@ def bland_altman_per_subject(unet, test_list, meta, kernel_sz):
         test_ds_names = test_ds[2]
         
         try:
-            test_set = MyDataset(meta.NUM_LAYERS, test_ds_origin, test_ds_mask, test_ds_names, kernel_sz, target_transform, target_transform)
+            test_set = MyDataset(meta.NUM_LAYERS, test_ds_origin, test_ds_mask, test_ds_names, kernel_sz, default_transform)
             test_batch_size = len(test_set)
             test_loader = DataLoader(test_set, test_batch_size, drop_last=True, shuffle=False, pin_memory=True)
 
@@ -162,7 +133,7 @@ def stats_per_subject(unet, test_list, meta, kernel_sz):
         test_ds_names = test_ds[2]
 
         try:
-            test_set = MyDataset(meta.NUM_LAYERS, test_ds_origin, test_ds_mask, test_ds_names, kernel_sz, target_transform, target_transform)
+            test_set = MyDataset(meta.NUM_LAYERS, test_ds_origin, test_ds_mask, test_ds_names, kernel_sz, default_transform)
             test_batch_size = len(test_set)
             test_loader = DataLoader(test_set, test_batch_size, drop_last=True, shuffle=False, pin_memory=True)
 
@@ -182,6 +153,30 @@ def stats_per_subject(unet, test_list, meta, kernel_sz):
             print(f'Subject {subj} has no suitable images !!!!')
 
     return stats_lv, stats_myo, stats_fib, Precision_FIB, Recall_FIB, Accuracy, Dice_list
+
+
+test_ds = GetData(test_list).generated_data_list()
+test_ds_origin = test_ds[0]
+test_ds_mask = test_ds[1]
+test_ds_names = test_ds[2]
+
+
+if meta.CROPPING is False:
+    unet = torch.load(f'{meta.PROJ_NAME}/{meta.MODEL_NAME}.pth').to(device=device)
+    kernel_sz = meta.KERNEL
+
+elif meta.CROPPING is True:
+    unet = torch.load(f'{meta.CROPP_PROJ_NAME}/{meta.MODEL_NAME}.pth').to(device=device)
+    kernel_sz = meta.CROPP_KERNEL 
+
+test_set = MyDataset(meta.NUM_LAYERS, test_ds_origin, test_ds_mask, test_ds_names, kernel_sz, default_transform)
+# test_set = MyDataset(meta.NUM_LAYERS, test_ds_origin, test_ds_mask, test_ds_names, kernel_sz, transform)
+test_batch_size = len(test_set)
+test_loader = DataLoader(test_set, test_batch_size, drop_last=True, shuffle=False, pin_memory=True)
+
+ds = DiceLoss()
+show_predicted_masks = MaskPrediction().prediction_masks(unet, test_loader)
+tm = TissueMetrics(unet, test_loader)
 
 
 try:

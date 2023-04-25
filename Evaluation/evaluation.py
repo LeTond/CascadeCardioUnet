@@ -16,21 +16,13 @@ from Preprocessing.preprocessing import *
 from skimage.transform import resize, rescale, downscale_local_mean
 from configuration import *
 
-#########################################################################################################################
-##TODO: COMMENTS
-#########################################################################################################################
+
+
 def divide_chunks(l, n):
     for i in range(0, len(l), n):
         yield l[i:i + n]
 
-        
-# ## Transfer to Preprocessing.preprocessing
-# def read_nii_zoom(path_to_nii):
-#     # matplotlib.use('TkAgg')
-#     img = nib.load(path_to_nii)
-#     return img.header.get_zooms()
-
-
+  
 class PredictionMask(MetaParameters):
 
     def __init__(self, model, kernel_sz, images, image_shp, def_cord):
@@ -221,9 +213,9 @@ class PdfSaver():
                     ax[i, 1].imshow(masks[i], alpha = 0.5)
                     
                     ax[i, 1].set_title(f'rel vol: {relVolume[i]} % '
-                                       f'LV vol: {LVv[i]} mm^3 ' 
-                                       f'MYO vol: {MYOv[i]} mm^3 '
-                                       f'FIB vol: {FIBv[i]} mm^3', 
+                                       f'LV vol: {LVv[i] / 1000} ml, ' 
+                                       f'MYO vol: {MYOv[i] / 1000} ml, '
+                                       f'FIB vol: {FIBv[i] / 1000} ml', 
                                        fontsize = 8, fontweight = 'bold', loc = 'right')
                     
                     figure.tight_layout()
@@ -235,9 +227,9 @@ class PdfSaver():
                 ax[1].imshow(images[0], plt.get_cmap('gray'))
                 ax[1].imshow(masks[0], alpha = 0.5)
                 ax[1].set_title(f'rel vol: {relVolume[0]} % '
-                                f'LV vol: {LVv[0]} mm^3 '  
-                                f'MYO vol: {MYOv[0]} mm^3 ' 
-                                f'FIB vol: {FIBv[0]} mm^3',
+                                f'LV vol: {LVv[0] / 1000} ml, '  
+                                f'MYO vol: {MYOv[0] / 1000} ml, ' 
+                                f'FIB vol: {FIBv[0] / 1000} ml',
                                 fontsize = 8, fontweight = 'bold', loc = 'right')
 
                 figure.tight_layout()
@@ -324,7 +316,7 @@ class EvalPreprocessData(MetaParameters):
         center_row = (mean_bot + mean_top) // 2
         center_column = (mean_left + mean_right) // 2 
 
-        ## TODO: подумать о обрезке не квадратной а по контуру ровно...
+        ## TODO: подумать об обрезке не квадратной а по контуру ровно...
         # max_kernel = max((mean_bot - mean_top), (mean_right - mean_left))
         # gap = max_kernel // 2 + round(0.05 * base_kernel)
         gap = 32

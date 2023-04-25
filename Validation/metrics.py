@@ -6,9 +6,7 @@ from Training.dataset import *
 from configuration import *
 
 
-#########################################################################################################################
-##TODO: COMMENTS
-#########################################################################################################################
+
 path_to_origs = meta.ORIGS_DIR
 path_to_masks = meta.MASKS_DIR
 
@@ -156,13 +154,6 @@ class TissueMetrics(MetaParameters, MaskPrediction):
             mean_contrast_fib = self.get_image_contrast(num_label = 3)
 
             print(f'{self.sub_names[i]} - mean LV {mean_contrast_lv}, mean Myo {mean_contrast_myo}, mean Fib {mean_contrast_fib}')
-
-            # diff_contrast = round((mean_contrast_fib - mean_contrast_lv + 1) / (mean_contrast_lv + 1) * 100, 2)
-
-            # if mean_contrast_lv < 10:
-                # pass 
-            # else:
-                # diff_contrast = round((mean_contrast_fib + smooth) / (mean_contrast_lv + smooth) * 100, 2)
 
     def image_metrics(self):
 

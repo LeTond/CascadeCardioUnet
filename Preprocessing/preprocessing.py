@@ -24,9 +24,6 @@ from sklearn import preprocessing        #pip install scikit-learn
 from parameters import MetaParameters
 
 
-########################################################################################################################
-# COMMENTS
-########################################################################################################################
 class ReadImages():
     def __init__(self, path_to_file):
         self.path_to_file = path_to_file
@@ -147,4 +144,3 @@ class SaveData():
 
 class ExportImage():
     ...
-

@@ -38,16 +38,13 @@ if meta.CROPPING is True:
 elif meta.CROPPING is False:
     kernel_sz = meta.KERNEL
 
-train_set = MyDataset(meta.NUM_LAYERS, train_ds_origin, train_ds_mask, train_ds_names, kernel_sz, target_transform,
-                      target_transform)
-
+train_set = MyDataset(meta.NUM_LAYERS, train_ds_origin, train_ds_mask, train_ds_names, kernel_sz, default_transform)
 for i in range(7):
-    train_set += MyDataset(meta.NUM_LAYERS, train_ds_origin, train_ds_mask, train_ds_names, kernel_sz, transform, target_transform)
+    train_set += MyDataset(meta.NUM_LAYERS, train_ds_origin, train_ds_mask, train_ds_names, kernel_sz, transform)
 train_loader = DataLoader(train_set, meta.BT_SZ, drop_last=True, shuffle=True, pin_memory=False)
 
 
-valid_set = MyDataset(meta.NUM_LAYERS, valid_ds_origin, valid_ds_mask, valid_ds_names, kernel_sz, target_transform,
-                      target_transform)
+valid_set = MyDataset(meta.NUM_LAYERS, valid_ds_origin, valid_ds_mask, valid_ds_names, kernel_sz, default_transform)
 valid_batch_size = len(valid_set)
 valid_loader = DataLoader(valid_set, valid_batch_size, drop_last=True, shuffle=True, pin_memory=False)
 

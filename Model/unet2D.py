@@ -8,11 +8,6 @@ from collections import OrderedDict
 from torchvision import models
 
 
-#########################################################################################################################
-##TODO: COMMENTS
-#########################################################################################################################
-
-
 class UNet_2D_mini(nn.Module, MetaParameters):
 
     def __init__(self):
@@ -276,6 +271,7 @@ class UNet_2D_AttantionLayer(nn.Module, MetaParameters):
         in_channels = self.CHANNELS
         out_channels = self.NUM_LAYERS
         dropout = self.DROPOUT
+        freeze_bn = self.FREEZE_BN
 
         self.dropout = nn.Dropout2d(dropout)
         self.encoder1 = UNet_2D_AttantionLayer.Conv2x2(in_channels, features, name = "enc1")
@@ -300,6 +296,21 @@ class UNet_2D_AttantionLayer(nn.Module, MetaParameters):
         self.Att1 = Attention_2D(features, features, features // 2)
         self.decoder1 = UNet_2D_AttantionLayer.Conv2x2(features * 2, features, name = "dec1")
         self.conv = nn.Conv2d(in_channels = features, out_channels = out_channels, kernel_size = 1)
+
+        self._initialize_weights()
+
+        if freeze_bn:
+            self.freeze_backbone()
+
+    def _initialize_weights(self):
+        for module in self.modules():
+            if isinstance(module, nn.Conv2d) or isinstance(module, nn.Linear):
+                nn.init.kaiming_normal_(module.weight)
+                if module.bias is not None:
+                    module.bias.data.zero_()
+            elif isinstance(module, nn.BatchNorm2d):
+                module.weight.data.fill_(1)
+                module.bias.data.zero_()
 
     def forward(self, x):
 
@@ -380,6 +391,20 @@ class UNet_2D_AttantionLayer(nn.Module, MetaParameters):
                 ]
             )
         )
+
+    def get_backbone_params(self):
+        # There is no backbone for unet, all the parameters are trained from scratch
+        return []
+
+    def get_decoder_params(self):
+        return self.parameters()
+
+    def freeze_backbone(self):
+        for module in self.modules():
+            print(isinstance(module, nn.BatchNorm2d))
+            if isinstance(module, nn.BatchNorm2d):
+                module.eval()
+
 
 
 class Attention_2D(nn.Module):

@@ -59,7 +59,6 @@ def device():
 
 
 device = device()
-
 print(device)
 
 
@@ -85,21 +84,18 @@ create_dir_log(meta.PROJ_NAME)
 create_dir_log(meta.CROPP_PROJ_NAME)
 
 
-# try:
-    # model = torch.hub.load('pytorch/vision:v0.10.0', 'fcn_resnet50', pretrained=True)
-    # model = torch.hub.load('pytorch/vision:v0.10.0', 'fcn_resnet101', pretrained=True)
-    # model = torch.load(f'{meta.PROJ_NAME}/{meta.MODEL_NAME}.pth').to(device=device)
-    # model.eval()
-    # print(f'model loaded: {model}')
-    # print(f'model loaded: {meta.PROJ_NAME}/{meta.MODEL_NAME}.pth')
-# except:
-    # print('no trained models')
-    # model = UNet_2D_mini(drop = dropout, init_features = init_features).to(device)
-    # model = UNet_2D().to(device)
-model = UNet_2D_AttantionLayer().to(device)
-    # model = SegNet().to(device)
-    # model = U_Net().to(device)
-    # model = FCT().to(device)
+if meta.CROPPING is True:
+    projec_name = meta.CROPP_PROJ_NAME
+elif meta.CROPPING is False:
+    projec_name = meta.PROJ_NAME
+
+try:
+    model = torch.load(f'{projec_name}/{meta.MODEL_NAME}.pth').to(device=device)
+    model.eval()
+    print(f'model loaded: {projec_name}/{meta.MODEL_NAME}.pth')
+except:
+    print('no trained models')
+    model = UNet_2D_AttantionLayer().to(device=device)
     
 loss_function = nn.CrossEntropyLoss(weight=meta.CE_WEIGHTS).to(device)
 # loss_function = nn.CrossEntropyLoss().to(device)
@@ -117,19 +113,87 @@ scheduler_gen = torch.optim.lr_scheduler.CosineAnnealingLR(
 ########################################################################################################################
 ## Main image transforms in Dataloder
 ########################################################################################################################
-target_transform = transforms.Compose([
+default_transform = transforms.Compose([
     transforms.ToPILImage(),
-    # transforms.Resize((meta.KERNEL, meta.KERNEL)),
     transforms.ToTensor(),
 ])
-transform = transforms.Compose([
+
+transform_01 = transforms.Compose([
     transforms.ToPILImage(),
-    # transforms.Resize((meta.KERNEL, meta.KERNEL)),
-    transforms.RandomRotation((-15, 15)),
+    transforms.RandomRotation((-15, 15), expand=False),
     transforms.RandomHorizontalFlip(0.5),
     transforms.RandomVerticalFlip(0.5),
     transforms.ToTensor(),
 ])
+
+transform_02 = transforms.Compose([
+    transforms.ToPILImage(),
+    transforms.RandomHorizontalFlip(0.5),
+    transforms.RandomVerticalFlip(0.5),
+    transforms.RandomAffine(degrees=(-45, 45), translate=(0.05, 0.15), scale=(0.75, 1.5)),
+    transforms.ToTensor(),
+])
+
+transform_03 = transforms.Compose([
+    transforms.ToPILImage(),
+    transforms.GaussianBlur(19), 
+    transforms.RandomHorizontalFlip(0.5),
+    transforms.RandomVerticalFlip(0.5),
+    transforms.RandomAffine(degrees=(-10, 10), translate=(0.1, 0.3), scale=(0.5, 2.0)),
+    transforms.ToTensor(),
+])
+
+transform_04 = transforms.Compose([
+    transforms.ToPILImage(),    
+    transforms.GaussianBlur(19), 
+    transforms.RandomRotation((-15, 15), expand=False),
+    transforms.RandomHorizontalFlip(0.5),
+    transforms.RandomVerticalFlip(0.5),
+    transforms.ToTensor(),
+])
+
+transform_05 = transforms.Compose([
+    transforms.ToPILImage(),
+    transforms.GaussianBlur(19), 
+    transforms.RandomHorizontalFlip(0.5),
+    transforms.RandomVerticalFlip(0.5),
+    transforms.ToTensor(),
+])
+
+transform = transforms.Compose([
+    transforms.ToPILImage(),
+    # transforms.RandomRotation((-15, 15), expand=False),
+    transforms.RandomHorizontalFlip(0.5),
+    transforms.RandomVerticalFlip(0.5),
+    # transforms.GaussianBlur(19), 
+    # transforms.RandomResizedCrop(meta.KERNEL),
+    transforms.RandomAffine(degrees=(-45, 45), translate=(0.05, 0.15), scale=(0.75, 1.5)),
+    # transforms.RandomPerspective(distortion_scale=0.7, p=1, interpolation=2, fill=0),
+    # transforms.RandomErasing(p=0.5, scale=(0.02, 0.33), ratio=(0.3, 3.3), value=0, inplace=False),
+    # transforms.RandomCrop(meta.KERNEL//2, padding=None, pad_if_needed=False, fill=0, padding_mode='constant'),
+    # transforms.Resize((meta.KERNEL, meta.KERNEL)),
+    transforms.ToTensor(),
+])
+
+
+transforms_list = [transform_01, transform_02, transform_03, transform_04, transform_05]
+
+# It is important to note that if we use expand=True, the image size will be changed. 
+# The output will try to include the whole image after rotation. 
+# It can be observed that in the following figure, image sizes are different, which is decided by rotation degrees. 
+# If you want all the training data to have the same size, the Resize() transform then should be placed after rotation.
+
+# my_transform = transforms.Compose([
+#  transforms.RandomPerspective(distortion_scale=0.7,p=1, interpolation=2, fill=0),
+#  transforms.ToTensor()
+
+# ])
+# torchvision.transforms.RandomErasing(p=0.5, scale=(0.02, 0.33), ratio=(0.3, 3.3), value=0, inplace=False)
+# transforms.RandomCrop(size,
+#                       padding=None,
+#                       pad_if_needed=False,
+#                       fill=0,
+#                       padding_mode='constant')
 
 
 # from torchsummary import summary

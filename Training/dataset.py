@@ -17,9 +17,6 @@ from Preprocessing.dirs_logs import *
 from Evaluation.evaluation import *
 
 
-########################################################################################################################
-##TODO: COMMENTS
-########################################################################################################################
 
 ##TODO: Delete pickle part and realize all preprocessing and augmentation right into the MyDataset class
 
@@ -72,8 +69,7 @@ class GetData(MetaParameters):
 
 class MyDataset(Dataset):
 
-    def __init__(self, num_layers, ds_origin, ds_mask, ds_names, kernel_sz, transform = None, target_transform = None, images_and_labels = []):
-        self.target_transform = target_transform
+    def __init__(self, num_layers, ds_origin, ds_mask, ds_names, kernel_sz, transform = None, images_and_labels = []):
         self.transform = transform
         self.images_and_labels = images_and_labels
         self.images = ds_origin
