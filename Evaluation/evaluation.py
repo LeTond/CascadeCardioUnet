@@ -1,8 +1,11 @@
 from torch import nn
 
 import torch
+import cv2
 import numpy as np
 import nibabel as nib
+# import pydicom as dicom
+
 import matplotlib.pyplot as plt
 import matplotlib.patheffects as path_effects
 
@@ -13,9 +16,9 @@ from matplotlib.backends.backend_pdf import PdfPages
 from Model.unet2D import UNet_2D, UNet_2D_AttantionLayer
 from parameters import *
 from Preprocessing.preprocessing import *
+from Preprocessing.dirs_logs import create_dir
 from skimage.transform import resize, rescale, downscale_local_mean
 from configuration import *
-
 
 
 def divide_chunks(l, n):
@@ -59,6 +62,7 @@ class PredictionMask(MetaParameters):
         self.model.eval()
 
         with torch.no_grad():
+
             image = image.transpose(2, 0, 1)
             image = np.expand_dims(image, 1)
             image = torch.from_numpy(image).to(device)
@@ -70,8 +74,9 @@ class PredictionMask(MetaParameters):
 
     def get_predicted_mask(self):
         mask_list = []
-        
+
         for image in self.images:
+
             predict, image = self.predict(image)
             predict = np.reshape(predict, (self.kernel_sz, self.kernel_sz))
             predict = np.array(predict, dtype = np.float32)
@@ -121,14 +126,86 @@ class DicomSaver(MetaParameters):
         self.masks_list = masks_list
         self.file_name = file_name
         self.evaluate_directory = evaluate_directory
+        self.orig_dir = f'{self.DATASET_DIR}{self.DATASET_NAME}_origin_new/'
 
-    def get_dicom_meta_header(self):
-        ...
+    def old_dicom(self):
+        old_dicom = dicom.dcmread(self.orig_dir + self.file_name)
+        return old_dicom
+
+    def change_name(self, old_dicom):
+
+        seq_name = old_dicom[0x0018, 0x1030]
+        seq_name.value += '_Mask'
+        seq_number = old_dicom[0x0020, 0x0011]
+        seq_number.value = int(seq_number.value) + 1000
+
+        return old_dicom        
+
+    def change_grey_to_color(self, old_dicom):
+
+        old_dicom.PhotometricInterpretation = 'RGB'
+        old_dicom.SamplesPerPixel = 3
+        old_dicom.BitsAllocated = 8
+        old_dicom.BitsStored = 8
+        old_dicom.HighBit = 7
+        old_dicom.add_new(0x00280006, 'US', 0)
+
+        return old_dicom
+
+    def new_dicom_array(self):
+
+        dcm2 = self.old_dicom().pixel_array
+
+        new_dicom_array = cv2.cvtColor(dcm2, cv2.COLOR_GRAY2RGB)
+        new_dicom_array = new_dicom_array / 4095 * 255
+        new_dicom_array = new_dicom_array.astype(np.uint8)
+
+        mask = self.masks_list[:,:,0].astype(np.float16)
+
+        # new_dicom_array[:,:,1][mask == 1] -= 50
+        new_dicom_array[:,:,2][mask == 2] -= 50
+        new_dicom_array[:,:,2][mask == 3] += 50
+
+        return new_dicom_array
+
+    def change_value_range_info(self, old_dicom):
+        
+        old_dicom.SmallestImagePixelValue = np.min(self.new_dicom_array())
+        old_dicom.LargestImagePixelValue = np.max(self.new_dicom_array())
+
+        return old_dicom
+
+    def dicom_file_name(self):
+        
+        new_file_name = self.file_name.split('/')[-1]
+
+        return new_file_name
+
+    def save_dicom_mask(self):
+
+        old_dicom = self.change_name(self.old_dicom())
+        mask = self.masks_list[:,:,0].astype(np.float16)
+        old_dicom.PixelData = mask.tostring()
+
+        new_file_name = f'{self.evaluate_directory}{self.file_name}'.split('/')[-1]
+        new_dir_name = f'{self.evaluate_directory}{self.file_name}'.rstrip(new_file_name)
+        create_dir(new_dir_name)
+
+        old_dicom.save_as(f'{self.evaluate_directory}{self.file_name}')
 
     def save_dicom(self):
-        ...
-        # new_image = nib.Nifti1Image(self.masks_list, affine = np.eye(4))
-        # nib.save(new_image, f'{self.evaluate_directory}/{self.file_name}')
+
+        old_dicom = self.change_name(self.old_dicom())
+        old_dicom = self.change_grey_to_color(old_dicom)
+        old_dicom = self.change_value_range_info(old_dicom)
+        old_dicom.PixelData = self.new_dicom_array().tostring()
+
+        new_dir_name = old_dicom.PatientName
+        create_dir(f'{self.evaluate_directory}/{new_dir_name}')
+
+        print(f'{self.evaluate_directory}/{new_dir_name}/')
+        # old_dicom.save_as(f'{self.evaluate_directory}/{new_dir_name}/{self.file_name}')
+        old_dicom.save_as(f'{self.evaluate_directory}/{new_dir_name}/{self.dicom_file_name()}')
 
 
 class PdfSaver():
@@ -260,71 +337,38 @@ class GetListImages(MetaParameters):
     def array_list(self, kernel_sz):
         
         list_images = []
-        count = 0
         def_coord = None
 
         images = ReadImages(f"{self.dataset_path}{self.file_name}").view_matrix()
-        
         orig_img_shape = images.shape
 
         if self.preseg:
             masks = ReadImages(f"{self.path_to_data}{self.file_name}").view_matrix()
             images, masks, def_coord = EvalPreprocessData(images, masks).presegmentation_tissues()
-
+            
         for slc in range(images.shape[2]):
-            count += 1
-            image = images[:, :, slc]
-                
-            normalized = PreprocessData(image, mask=None).preprocessing(kernel_sz)[0]
+
+            normalized = PreprocessData(images[:, :, slc], mask=None).preprocessing(kernel_sz)[0]
             list_images.append(normalized)
 
         return list_images, orig_img_shape, def_coord
 
+    def dicom_array(self, kernel_sz):
+        
+        def_coord = None
 
-class EvalPreprocessData(MetaParameters):
+        image = ReadImages(f"{self.dataset_path}{self.file_name}").get_dcm()
+        orig_img_shape = image.shape
 
-    def __init__(self, images = None, masks = None):         
-        super(MetaParameters, self).__init__()
-        self.images = images
-        self.masks = masks
+        if self.preseg:
 
-    def presegmentation_tissues(self):
-        list_top, list_bot, list_left, list_right = [], [], [], []
+            mask = ReadImages(f"{self.path_to_data}{self.file_name}").get_dcm()
+            image, mask, def_coord = EvalPreprocessData(image, mask).presegmentation_tissues()
+        
+        normalized_image = PreprocessData(image[:, :, 0], mask=None).preprocessing(kernel_sz)[0]
+        normalized_image = list([normalized_image])
 
-        shp = self.images.shape
-        base_kernel = min(shp[0], shp[1])
-        count = 0
-
-        for slc in range(shp[2]):
-            image = self.images[:, :, slc]
-            mask = self.masks[:, :, slc]
-
-            if (mask != 0).any():
-                count += 1
-                predict_mask = np.where(mask != 0)
-
-                list_top.append(np.min(predict_mask[0]))
-                list_left.append(np.min(predict_mask[1]))
-                list_bot.append(np.max(predict_mask[0]))
-                list_right.append(np.max(predict_mask[1]))
-
-        mean_top = np.array(list_top).sum() // count
-        mean_left = np.array(list_left).sum() // count
-        mean_bot = np.array(list_bot).sum() // count 
-        mean_right = np.array(list_right).sum() // count
-
-        center_row = (mean_bot + mean_top) // 2
-        center_column = (mean_left + mean_right) // 2 
-
-        ## TODO: подумать об обрезке не квадратной а по контуру ровно...
-        # max_kernel = max((mean_bot - mean_top), (mean_right - mean_left))
-        # gap = max_kernel // 2 + round(0.05 * base_kernel)
-        gap = 32
-
-        images = self.images[center_row - gap: center_row + gap, center_column - gap: center_column + gap, :]
-        masks = self.masks[center_row - gap: center_row + gap, center_column - gap: center_column + gap, :]
-
-        return images, masks, [center_row, center_column]
+        return normalized_image, orig_img_shape, def_coord
 
 
 # def benchmark(func):

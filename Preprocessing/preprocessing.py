@@ -9,6 +9,7 @@ import pickle
 import platform
 
 import nibabel as nib
+# import pydicom as dicom
 import numpy as np
 import pandas as pd
 import torchvision.transforms.functional as TF
@@ -33,6 +34,16 @@ class ReadImages():
         img = nib.load(self.path_to_file)
         return img
 
+    def get_dcm(self):
+
+        origin_dicom = dicom.dcmread(self.path_to_file)
+        new_dicom = np.array(origin_dicom.pixel_array)
+        
+        if len(list(new_dicom.shape)) == 2:
+            new_dicom = new_dicom[:, :, np.newaxis]
+        
+        return new_dicom
+
     def get_nii_fov(self):
         # matplotlib.use('TkAgg')
         img = nib.load(self.path_to_file)
@@ -46,6 +57,17 @@ class ReadImages():
         files = os.listdir(self.path_to_file)
         files.sort()
         return files
+
+    def get_file_path_list(self):
+
+        path_list = []
+        for root, subfolder, files in os.walk(self.path_to_file):
+            for item in files:
+                if item.endswith('.nii') or item.endswith('.dcm'):
+                    filenamepath = str(os.path.join(root, item)).split('/')[-1]
+                    path_list.append(filenamepath)
+
+        return path_list
 
     def get_dataset_list(self):
         return list(self.get_file_list())
@@ -122,6 +144,61 @@ class PreprocessData(MetaParameters):
         random.shuffle(temp)
         images, masks, names = zip(*temp)
         return list(images), list(masks), list(names)
+
+
+class EvalPreprocessData(MetaParameters):
+
+    def __init__(self, images = None, masks = None):         
+        super(MetaParameters, self).__init__()
+        self.images = images
+        self.masks = masks
+
+    def presegmentation_tissues(self):
+        list_top, list_bot, list_left, list_right = [], [], [], []
+
+        shp = self.images.shape
+        base_kernel = min(shp[0], shp[1])
+        count = 0
+
+        for slc in range(shp[2]):
+
+            image = self.images[:, :, slc]
+            mask = self.masks[:, :, slc]
+
+            if (mask != 0).any():
+                count += 1
+                predict_mask = np.where(mask != 0)
+
+                list_top.append(np.min(predict_mask[0]))
+                list_left.append(np.min(predict_mask[1]))
+                list_bot.append(np.max(predict_mask[0]))
+                list_right.append(np.max(predict_mask[1]))
+
+            else:
+
+                count += 1
+                list_top.append(shp[0] // 2 - 32)
+                list_left.append(shp[1] // 2 - 32)
+                list_bot.append(shp[0] // 2 + 32)
+                list_right.append(shp[1] // 2 + 32)
+
+        mean_top = np.array(list_top).sum() // count
+        mean_left = np.array(list_left).sum() // count
+        mean_bot = np.array(list_bot).sum() // count 
+        mean_right = np.array(list_right).sum() // count
+
+        center_row = (mean_bot + mean_top) // 2
+        center_column = (mean_left + mean_right) // 2 
+
+        ## TODO: подумать об обрезке не квадратной а по контуру ровно...
+        # max_kernel = max((mean_bot - mean_top), (mean_right - mean_left))
+        # gap = max_kernel // 2 + round(0.05 * base_kernel)
+        gap = 32
+
+        images = self.images[center_row - gap: center_row + gap, center_column - gap: center_column + gap, :]
+        masks = self.masks[center_row - gap: center_row + gap, center_column - gap: center_column + gap, :]
+
+        return images, masks, [center_row, center_column]
 
 
 class ViewData():

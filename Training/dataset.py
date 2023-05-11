@@ -9,7 +9,7 @@ import torchvision.transforms as transforms
 from torch.utils.data import Dataset
 # from configuration import *
 
-from Preprocessing.preprocessing import *
+from Preprocessing.preprocessing import ReadImages, PreprocessData, EvalPreprocessData
 from parameters import *
 # from configuration import *
 from parameters import MetaParameters

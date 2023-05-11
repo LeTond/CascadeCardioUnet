@@ -89,19 +89,24 @@ if meta.CROPPING is True:
 elif meta.CROPPING is False:
     projec_name = meta.PROJ_NAME
 
-try:
-    model = torch.load(f'{projec_name}/{meta.MODEL_NAME}.pth').to(device=device)
-    model.eval()
-    print(f'model loaded: {projec_name}/{meta.MODEL_NAME}.pth')
-except:
-    print('no trained models')
+if meta.PRETRAIN:    
+    try:
+        model = torch.load(f'{projec_name}/{meta.MODEL_NAME}.pth').to(device=device)
+        model.eval()
+        print(f'model loaded: {projec_name}/{meta.MODEL_NAME}.pth')
+    except:
+        print('no trained models')
+        model = UNet_2D_AttantionLayer().to(device=device)
+else:
     model = UNet_2D_AttantionLayer().to(device=device)
-    
+    # model = UNet_2D().to(device=device)
+
 loss_function = nn.CrossEntropyLoss(weight=meta.CE_WEIGHTS).to(device)
 # loss_function = nn.CrossEntropyLoss().to(device)
 # loss_function = FocalLoss(weight = meta.CE_WEIGHTS).to(device)
 
 optimizer = torch.optim.Adam(model.parameters(), lr=meta.LR, weight_decay=meta.WDC)
+# optimizer = torch.optim.AdamW(model.parameters(), lr=meta.LR, weight_decay=meta.WDC)
 # optimizer = Lion(model.parameters(), lr = meta.LR, betas=(0.9, 0.99), weight_decay = meta.WDC)
 # optimizer = torch.optim.AdamW(model.parameters(), lr = learning_rate, weight_decay = wdc, amsgrad=False)
 # optimizer = torch.optim.SGD(model.parameters(), lr=meta.LR, weight_decay=meta.WDC, momentum=0.9, nesterov=True)
@@ -177,24 +182,6 @@ transform = transforms.Compose([
 
 
 transforms_list = [transform_01, transform_02, transform_03, transform_04, transform_05]
-
-# It is important to note that if we use expand=True, the image size will be changed. 
-# The output will try to include the whole image after rotation. 
-# It can be observed that in the following figure, image sizes are different, which is decided by rotation degrees. 
-# If you want all the training data to have the same size, the Resize() transform then should be placed after rotation.
-
-# my_transform = transforms.Compose([
-#  transforms.RandomPerspective(distortion_scale=0.7,p=1, interpolation=2, fill=0),
-#  transforms.ToTensor()
-
-# ])
-# torchvision.transforms.RandomErasing(p=0.5, scale=(0.02, 0.33), ratio=(0.3, 3.3), value=0, inplace=False)
-# transforms.RandomCrop(size,
-#                       padding=None,
-#                       pad_if_needed=False,
-#                       fill=0,
-#                       padding_mode='constant')
-
 
 # from torchsummary import summary
 # device = 'cpu'

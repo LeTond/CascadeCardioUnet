@@ -27,7 +27,7 @@ class PlotResults(MetaParameters):
         origMask = np.resize(origMask.cpu(), (self.kernel_sz, self.kernel_sz, slices))
 
         for slc in range(slices):
-            
+
             ax[0].imshow(origImage[slc], plt.get_cmap('gray'))
             ax[1].imshow(origImage[slc], plt.get_cmap('gray'))
             ax[1].imshow(predMask[slc], alpha = 0.5)
@@ -49,6 +49,15 @@ class PlotResults(MetaParameters):
         predMask = np.resize(predMask.cpu(), (self.kernel_sz, self.kernel_sz))
         origMask = np.resize(origMask.cpu(), (self.kernel_sz, self.kernel_sz))
 
+        # ax[0].imshow(origImage, plt.get_cmap('gray'))
+
+        # ax[1].imshow(origImage, plt.get_cmap('gray'))
+        # ax[1].pcolormesh(predMask, alpha = 0.5, cmap='plasma', edgecolors="green", shading='gouraud')
+
+        # ax[2].imshow(origImage, plt.get_cmap('gray'))
+        # ax[2].pcolormesh(origMask, alpha = 0.5, cmap='plasma', edgecolors="green", shading='gouraud')
+
+
         ax[0].imshow(origImage, plt.get_cmap('gray'))
         ax[1].imshow(origImage, plt.get_cmap('gray'))
         ax[1].imshow(predMask, alpha = 0.5)
@@ -58,6 +67,8 @@ class PlotResults(MetaParameters):
         ax[0].set_title(f"{sub_names}", fontsize = 8, fontweight = 'bold')
         ax[1].set_title(f"Dice: LV - {self.dice_lv} || MYO - {self.dice_myo} || FIB - {self.dice_fib} || Prec - {self.precision} || Rec - {self.recall}", fontsize = 8, fontweight='bold')
         ax[2].set_title("", fontsize = 8, fontweight ='bold')
+
+        figure.set_edgecolor("green")
         figure.tight_layout()
         
         return figure

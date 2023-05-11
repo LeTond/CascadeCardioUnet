@@ -37,21 +37,14 @@ def create_hist(value_list: list):
 
 class MaskPrediction():
 
-    # def __init__(model_net, dataset_)
-    # self.model_net = model_net
-    # self.dataset_ = dataset_
-
     def prediction_masks(self, model_net, dataset_):
         
         size = len(dataset_.dataset)
         model_net.eval()
         
         with torch.no_grad():
-
             for inputs, labels, sub_names in dataset_:
-                
                 inputs, labels, sub_names = inputs.to(device), labels.to(device), list(sub_names)   
-                
                 predict = torch.softmax(model_net(inputs), dim = 1)
                 predict = torch.argmax(predict, dim = 1)
                 labels = torch.argmax(labels, dim = 1)
@@ -180,8 +173,6 @@ class TissueMetrics(MetaParameters, MaskPrediction):
             accur += fib_metrics[2]
             dice += fib_metrics[3]
 
-            # print(self.sub_names[i], fib_metrics[3])
-
         mean_precision = round(precision / self.shp[0], 2) 
         mean_recall = round(recall / self.shp[0], 2)
         mean_accur = round(accur / self.shp[0], 2)
@@ -238,34 +229,6 @@ class TissueMetrics(MetaParameters, MaskPrediction):
         mean_CM_fib = np.sum(CM_fib) * 32 / 1000
 
         return mean_GT_myo, mean_CM_myo, mean_GT_fib, mean_CM_fib, mean_True_myo_vol, mean_myo_vol, mean_True_fib_vol, mean_fib_vol
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
